@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Local data (regenerable or private)
+data/store/
+data/demo/audio/
+experiments/cache/
+experiments/logs/
+experiments/training/*/last.pt
+experiments/training/*/tensorboard/
+*.wav
+!tests/**/*.wav
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+experiments/training/*/best.pt
+.claude/

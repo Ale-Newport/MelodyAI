@@ -1,0 +1,292 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { Mic, MicOff, Music4, Pause, Play, Search, Square, Upload, Wind, Type, Sparkles, Layers, X } from "lucide-react";
+import { useRecorder } from "@/hooks/useRecorder";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { api } from "@/services/api";
+import type { Mode, RecognitionResult } from "@/types/api";
+import { fileToWav } from "@/lib/wav";
+import { Button, Card, CardHeader, ErrorBox, Input, Progress, SegmentedControl, Badge } from "@/components/ui/primitives";
+import { LiveWaveform } from "@/visualizations/canvas";
+import { ResultsView, Artwork } from "@/features/recognition/ResultsView";
+import { cn, formatTime } from "@/lib/utils";
+
+const MODE_ICONS: Record<Mode, JSX.Element> = {
+  auto: <Sparkles className="h-4 w-4" />,
+  hum: <Music4 className="h-4 w-4" />,
+  whistle: <Wind className="h-4 w-4" />,
+  lyrics: <Type className="h-4 w-4" />,
+  combined: <Layers className="h-4 w-4" />,
+};
+
+function MicButton({ state, level, onClick, disabled }: { state: "idle" | "recording" | "busy"; level: number; onClick: () => void; disabled?: boolean }) {
+  const { t } = useAppSettings();
+  const rec = state === "recording";
+  return (
+    <div className="relative grid place-items-center" style={{ width: 220, height: 220 }}>
+      {rec && (
+        <>
+          <span className="absolute h-40 w-40 animate-ripple rounded-full bg-accent/25" />
+          <span className="absolute h-40 w-40 animate-ripple rounded-full bg-accent2/20 [animation-delay:1.2s]" />
+          <span className="absolute rounded-full bg-gradient-to-r from-accent/30 to-accent2/30 blur-xl transition-all duration-100" style={{ width: 160 + level * 90, height: 160 + level * 90 }} />
+        </>
+      )}
+      <button
+        onClick={onClick}
+        disabled={disabled || state === "busy"}
+        aria-label={rec ? t("rec.stop") : t("rec.tap")}
+        className={cn(
+          "relative z-10 grid h-40 w-40 place-items-center rounded-full transition-all duration-300 focus-visible:ring-4",
+          rec ? "scale-105 bg-gradient-to-br from-accent to-accent2 shadow-[0_0_60px_-5px] shadow-accent/60" : "bg-gradient-to-br from-elevated to-surface ring-1 ring-border hover:ring-accent/60 hover:shadow-[0_0_50px_-10px] hover:shadow-accent/50",
+          state === "busy" && "opacity-60",
+        )}
+      >
+        {rec ? <Square className="h-12 w-12 fill-black text-black" /> : <Mic className="h-14 w-14 text-accent" />}
+      </button>
+    </div>
+  );
+}
+
+function PracticePanel() {
+  const { data } = useQuery({ queryKey: ["songs", ""], queryFn: () => api.songs() });
+  const [playing, setPlaying] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => () => audio.current?.pause(), []);
+  const songs = (data?.items ?? []).filter((s) => s.index_status === "indexed").slice(0, 48);
+  if (!data) return null;
+  if (!songs.length)
+    return (
+      <Card className="p-6 text-center text-sm text-muted">
+        The catalog is empty. <Link to="/library" className="text-accent hover:underline">Import the demo catalog</Link> to start.
+      </Card>
+    );
+  const toggle = (id: string) => {
+    audio.current?.pause();
+    if (playing === id) return setPlaying(null);
+    audio.current = new Audio(api.songAudioUrl(id));
+    audio.current.onended = () => setPlaying(null);
+    audio.current.play().then(() => setPlaying(id)).catch(() => setPlaying(null));
+  };
+  return (
+    <Card>
+      <CardHeader title="Practice with the catalog" subtitle="Listen to a melody, then hum or whistle any part of it — the chorus in the middle works too." />
+      <div className="grid max-h-80 grid-cols-1 gap-1 overflow-y-auto p-3 scrollbar-thin sm:grid-cols-2 lg:grid-cols-3">
+        {songs.map((s) => (
+          <button key={s.id} onClick={() => toggle(s.id)} className="flex items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-elevated/60" aria-label={`Play ${s.title}`}>
+            <div className="relative">
+              <Artwork id={s.id} size={40} />
+              <span className="absolute inset-0 grid place-items-center rounded-xl bg-black/30">
+                {playing === s.id ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-white" />}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{s.title}</div>
+              <div className="truncate text-xs text-muted">
+                {s.artist}
+                {s.has_lyrics && <span className="ml-1 text-accent2">· lyrics</span>}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function History() {
+  const { data } = useQuery({ queryKey: ["history"], queryFn: () => api.history(8) });
+  if (!data?.length) return null;
+  return (
+    <Card>
+      <CardHeader title="Recent searches" subtitle="Results only — recordings are not kept unless you allowed it" />
+      <ul className="p-3">
+        {data.map((h) => (
+          <li key={h.id}>
+            <Link to={`/r/${h.id}`} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm hover:bg-elevated/60">
+              <span className="truncate">{h.top_song && h.status !== "no_match" ? h.top_song.title : "No reliable match"}</span>
+              <span className="flex items-center gap-2 text-xs text-muted">
+                <Badge tone={h.status === "match" ? "ok" : h.status === "uncertain" ? "warn" : "neutral"}>{h.resolved_mode ?? h.mode}</Badge>
+                {new Date(h.created_at).toLocaleTimeString()}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+export default function RecognizePage() {
+  const { t, settings } = useAppSettings();
+  const qc = useQueryClient();
+  const [mode, setMode] = useState<Mode>(settings.default_mode);
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<RecognitionResult | null>(null);
+  const [retain, setRetain] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [shortWarning, setShortWarning] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => setMode(settings.default_mode), [settings.default_mode]);
+
+  const m = useMutation({
+    mutationFn: async (p: { audio?: Blob | null; name?: string; text?: string }) => {
+      abortRef.current = new AbortController();
+      return api.recognize({ mode, audio: p.audio, audioName: p.name, text: p.text, retainAudio: retain }, abortRef.current.signal);
+    },
+    onSuccess: (r) => {
+      setResult(r);
+      qc.invalidateQueries({ queryKey: ["history"] });
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    },
+  });
+
+  const onComplete = useCallback(
+    (r: { blob: Blob; duration: number }) => {
+      setShortWarning(r.duration < settings.min_record_seconds);
+      m.mutate({ audio: r.blob, name: "recording.wav", text: mode === "combined" || mode === "lyrics" ? text : undefined });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mode, text, settings.min_record_seconds, retain],
+  );
+  const rec = useRecorder({ maxSeconds: settings.max_record_seconds, deviceId: settings.microphone_id, onComplete });
+
+  const recording = rec.state === "recording" || rec.state === "requesting";
+  const busy = m.isPending;
+  const uploadFile = async (f: File) => {
+    setResult(null);
+    m.mutate({ audio: await fileToWav(f), name: f.name.replace(/\.[^.]+$/, "") + ".wav", text: mode === "combined" ? text : undefined });
+  };
+  const textOnly = () => {
+    setResult(null);
+    m.mutate({ text });
+  };
+  const cancel = () => {
+    if (recording) rec.cancel();
+    abortRef.current?.abort();
+  };
+
+  const modes: Mode[] = ["auto", "hum", "whistle", "lyrics", "combined"];
+  return (
+    <div className="space-y-8">
+      <section
+        className={cn("card relative overflow-hidden px-4 pb-8 pt-10 text-center sm:px-10", dragging && "ring-2 ring-accent")}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) uploadFile(f);
+        }}
+      >
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <span className="gradient-text">{t("rec.headline")}</span>
+        </h1>
+        <p className="mx-auto mt-2 max-w-xl text-muted">{t("rec.sub")}</p>
+        <div className="mt-6 flex justify-center">
+          <SegmentedControl
+            ariaLabel="Recognition mode"
+            value={mode}
+            onChange={(v) => setMode(v)}
+            options={modes.map((v) => ({ value: v, label: t(`mode.${v}` as any), icon: MODE_ICONS[v], hint: t(`mode.${v}.hint` as any) }))}
+          />
+        </div>
+        <p className="mt-2 text-xs text-muted">{t(`mode.${mode}.hint` as any)}</p>
+
+        <div className="mt-4 flex flex-col items-center">
+          <MicButton state={busy ? "busy" : recording ? "recording" : "idle"} level={rec.level} onClick={() => (recording ? rec.stop() : (setResult(null), rec.start()))} />
+          <div className="h-24 w-full max-w-xl">
+            <AnimatePresence>
+              {recording && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
+                  <LiveWaveform analyser={rec.analyser} active={rec.state === "recording"} height={56} />
+                  <div className="flex items-center justify-center gap-4 text-sm">
+                    <span className="font-mono tabular text-fg">{formatTime(rec.elapsed)}</span>
+                    <span className="text-muted">/ {formatTime(settings.max_record_seconds)}</span>
+                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-elevated" aria-label="Input volume">
+                      <div className={cn("h-full transition-all", rec.level > 0.9 ? "bg-bad" : "bg-ok")} style={{ width: `${rec.level * 100}%` }} />
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={cancel}>
+                      <X className="h-4 w-4" /> {t("rec.cancel")}
+                    </Button>
+                  </div>
+                  {rec.elapsed < settings.min_record_seconds && <p className="text-xs text-muted">{t("rec.min", { s: settings.min_record_seconds })}</p>}
+                </motion.div>
+              )}
+              {!recording && !busy && <p className="pt-2 text-sm text-muted">{t("rec.tap")}</p>}
+            </AnimatePresence>
+          </div>
+          {(rec.state === "denied" || rec.state === "error") && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-bad">
+              <MicOff className="h-4 w-4" /> {rec.state === "denied" ? t("rec.denied") : rec.error}
+            </div>
+          )}
+        </div>
+
+        <div className="mx-auto mt-4 grid max-w-2xl gap-3 sm:grid-cols-[1fr_auto]">
+          {(mode === "lyrics" || mode === "combined" || mode === "auto") && (
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (text.trim()) textOnly();
+              }}
+            >
+              <Input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("rec.typeLyrics")} aria-label="Lyrics text" maxLength={2000} />
+              <Button type="submit" variant="secondary" disabled={!text.trim() || busy || mode === "combined"} title={mode === "combined" ? "In combined mode the text is sent with your recording" : undefined}>
+                <Search className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("rec.searchText")}</span>
+              </Button>
+            </form>
+          )}
+          <div className={cn("flex items-center justify-center gap-2", !(mode === "lyrics" || mode === "combined" || mode === "auto") && "sm:col-span-2")}>
+            <input ref={fileRef} type="file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.webm" className="hidden" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={busy || recording}>
+              <Upload className="h-4 w-4" /> {t("rec.upload")}
+            </Button>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-muted">{t("rec.drop")}</p>
+        {settings.retention === "keep_with_consent" && (
+          <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" checked={retain} onChange={(e) => setRetain(e.target.checked)} /> Keep this recording on this computer (consent)
+          </label>
+        )}
+      </section>
+
+      <div ref={resultRef} className="scroll-mt-24">
+        {busy && (
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">{t("rec.processing")}</div>
+                <div className="mt-1 text-xs text-muted">
+                  {[t("rec.stage.decode"), t("rec.stage.pitch"), t("rec.stage.match"), t("rec.stage.rank")].join(" → ")}
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={cancel}>
+                {t("rec.cancel")}
+              </Button>
+            </div>
+            <Progress indeterminate className="mt-4" />
+          </Card>
+        )}
+        {m.isError && !(m.error as any)?.name?.includes("Abort") && <ErrorBox error={m.error} />}
+        {shortWarning && result && <p className="mb-3 text-xs text-warn">{t("rec.min", { s: settings.min_record_seconds })}</p>}
+        {result && !busy && <ResultsView result={result} onAgain={() => { setResult(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} />}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <PracticePanel />
+        <History />
+      </div>
+    </div>
+  );
+}

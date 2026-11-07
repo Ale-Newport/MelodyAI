@@ -1,0 +1,15 @@
+name: Research / algorithm proposal
+description: Propose a new matcher, model, dataset adapter or evaluation condition
+labels: [research]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposal and motivation (with references)
+    validations:
+      required: true
+  - type: textarea
+    id: eval
+    attributes:
+      label: How will it be evaluated?
+      description: Which benchmark conditions / datasets, and what result would justify merging it?

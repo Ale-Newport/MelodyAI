@@ -1,0 +1,774 @@
+{
+ "run_id": "20261107T103457Z-quick",
+ "created_at": "2026-11-07T10:36:12.051513+00:00",
+ "seed": 2026,
+ "dataset": {
+  "type": "synthetic",
+  "catalog": "MelodyAI demo generator, 16 songs (seeds 1000+)",
+  "queries": 104,
+  "conditions": [
+   "hum_clean",
+   "hum_tempo",
+   "hum_detuned",
+   "chorus_mid_song",
+   "whistle"
+  ],
+  "query_hash": "293596f07a",
+  "out_of_catalog_seeds": "300000+"
+ },
+ "indexing": {
+  "songs": 16,
+  "windows": 4922,
+  "total_s": 2.944,
+  "mean_ms_per_song": 183.99,
+  "window_matrix_mb": 1.89,
+  "rss_delta_mb": 243.5
+ },
+ "algorithms": {
+  "ls": "Linear scaling (no DTW)",
+  "dtw": "Pitch contour + window DTW",
+  "note_align": "Note intervals + Smith-Waterman",
+  "ensemble": "Ensemble (dtw + note_align + subseq_dtw)"
+ },
+ "melody": {
+  "dtw": {
+   "overall": {
+    "top1": 0.9875,
+    "top3": 0.9875,
+    "top5": 1.0,
+    "top10": 1.0,
+    "mrr": 0.990625,
+    "n": 80
+   },
+   "by_condition": {
+    "chorus_mid_song": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "hum_clean": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "hum_detuned": {
+     "top1": 0.9375,
+     "top3": 0.9375,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 0.953125,
+     "n": 16
+    },
+    "hum_tempo": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "whistle": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    }
+   },
+   "latency": {
+    "mean_ms": 25.95937630750847,
+    "p50_ms": 26.746312505565584,
+    "p95_ms": 33.595654560485855
+   },
+   "rejection": {
+    "thresholds_dev": {
+     "accept": 0.5159,
+     "uncertain": 0.4384,
+     "margin": 0.0,
+     "fitted_on": "dev half (even song indices)",
+     "target_false_accept_rate": 0.05
+    },
+    "test": {
+     "threshold": 0.5159,
+     "accepted_correct_rate": 0.7692307692307693,
+     "accepted_wrong_rate_in_catalog": 0.0,
+     "false_accept_rate_ooc": 0.08333333333333333,
+     "precision_of_accepts": 0.967741935483871,
+     "coverage_in_catalog": 0.75,
+     "auc_correct_vs_ooc": 0.9209401709401709
+    },
+    "dev": {
+     "threshold": 0.5159,
+     "accepted_correct_rate": 0.9,
+     "accepted_wrong_rate_in_catalog": 0.0,
+     "false_accept_rate_ooc": 0.0,
+     "precision_of_accepts": 1.0,
+     "coverage_in_catalog": 0.9,
+     "auc_correct_vs_ooc": 0.9729166666666667
+    },
+    "platt": {
+     "coef": [
+      2.2742893184957538,
+      1.2279463073431687
+     ],
+     "intercept": -0.2652473073399254
+    },
+    "calibration_test": {
+     "ece": 0.2178873278979287,
+     "brier": 0.1391080241329473,
+     "reliability": [
+      {
+       "bin": [
+        0.4,
+        0.5
+       ],
+       "n": 2,
+       "confidence": 0.4340742441278031,
+       "accuracy": 0.0
+      },
+      {
+       "bin": [
+        0.6,
+        0.7
+       ],
+       "n": 9,
+       "confidence": 0.6596920324531084,
+       "accuracy": 0.1111111111111111
+      },
+      {
+       "bin": [
+        0.7,
+        0.8
+       ],
+       "n": 21,
+       "confidence": 0.7497996593178575,
+       "accuracy": 0.8571428571428571
+      },
+      {
+       "bin": [
+        0.8,
+        0.9
+       ],
+       "n": 20,
+       "confidence": 0.8364721441983141,
+       "accuracy": 1.0
+      }
+     ],
+     "n": 52
+    }
+   }
+  },
+  "ensemble": {
+   "overall": {
+    "top1": 1.0,
+    "top3": 1.0,
+    "top5": 1.0,
+    "top10": 1.0,
+    "mrr": 1.0,
+    "n": 80
+   },
+   "by_condition": {
+    "chorus_mid_song": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "hum_clean": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "hum_detuned": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "hum_tempo": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "whistle": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    }
+   },
+   "latency": {
+    "mean_ms": 348.9225977456805,
+    "p50_ms": 337.46800041990355,
+    "p95_ms": 462.6807804801501
+   },
+   "rejection": {
+    "thresholds_dev": {
+     "accept": 0.38,
+     "uncertain": 0.3657,
+     "margin": 0.0,
+     "fitted_on": "dev half (even song indices)",
+     "target_false_accept_rate": 0.05
+    },
+    "test": {
+     "threshold": 0.38,
+     "accepted_correct_rate": 0.975,
+     "accepted_wrong_rate_in_catalog": 0.0,
+     "false_accept_rate_ooc": 0.08333333333333333,
+     "precision_of_accepts": 0.975,
+     "coverage_in_catalog": 0.975,
+     "auc_correct_vs_ooc": 0.99375
+    },
+    "dev": {
+     "threshold": 0.38,
+     "accepted_correct_rate": 0.975,
+     "accepted_wrong_rate_in_catalog": 0.0,
+     "false_accept_rate_ooc": 0.0,
+     "precision_of_accepts": 1.0,
+     "coverage_in_catalog": 0.975,
+     "auc_correct_vs_ooc": 0.99375
+    },
+    "platt": {
+     "coef": [
+      2.379650109786804,
+      1.7228582386553375
+     ],
+     "intercept": -0.4465798689183221
+    },
+    "calibration_test": {
+     "ece": 0.2151802576964419,
+     "brier": 0.10239789347958023,
+     "reliability": [
+      {
+       "bin": [
+        0.3,
+        0.4
+       ],
+       "n": 2,
+       "confidence": 0.3901742398856185,
+       "accuracy": 0.0
+      },
+      {
+       "bin": [
+        0.5,
+        0.6
+       ],
+       "n": 4,
+       "confidence": 0.5612321344695591,
+       "accuracy": 0.0
+      },
+      {
+       "bin": [
+        0.6,
+        0.7
+       ],
+       "n": 10,
+       "confidence": 0.63252049320017,
+       "accuracy": 0.4
+      },
+      {
+       "bin": [
+        0.7,
+        0.8
+       ],
+       "n": 8,
+       "confidence": 0.7674811350496762,
+       "accuracy": 1.0
+      },
+      {
+       "bin": [
+        0.8,
+        0.9
+       ],
+       "n": 28,
+       "confidence": 0.8579021238942424,
+       "accuracy": 1.0
+      }
+     ],
+     "n": 52
+    }
+   }
+  },
+  "ls": {
+   "overall": {
+    "top1": 0.6125,
+    "top3": 0.75,
+    "top5": 0.7875,
+    "top10": 0.9375,
+    "mrr": 0.7025595238095239,
+    "n": 80
+   },
+   "by_condition": {
+    "chorus_mid_song": {
+     "top1": 0.625,
+     "top3": 0.8125,
+     "top5": 0.875,
+     "top10": 1.0,
+     "mrr": 0.7406994047619047,
+     "n": 16
+    },
+    "hum_clean": {
+     "top1": 0.5625,
+     "top3": 0.8125,
+     "top5": 0.875,
+     "top10": 1.0,
+     "mrr": 0.7078125,
+     "n": 16
+    },
+    "hum_detuned": {
+     "top1": 0.5625,
+     "top3": 0.75,
+     "top5": 0.75,
+     "top10": 0.875,
+     "mrr": 0.6625744047619048,
+     "n": 16
+    },
+    "hum_tempo": {
+     "top1": 0.75,
+     "top3": 0.8125,
+     "top5": 0.8125,
+     "top10": 0.9375,
+     "mrr": 0.7890625,
+     "n": 16
+    },
+    "whistle": {
+     "top1": 0.5625,
+     "top3": 0.5625,
+     "top5": 0.625,
+     "top10": 0.875,
+     "mrr": 0.6126488095238096,
+     "n": 16
+    }
+   },
+   "latency": {
+    "mean_ms": 3.39490260301652,
+    "p50_ms": 3.502437495626509,
+    "p95_ms": 4.387172363931312
+   },
+   "rejection": {
+    "thresholds_dev": {
+     "accept": 0.3481,
+     "uncertain": 0.255,
+     "margin": 0.0,
+     "fitted_on": "dev half (even song indices)",
+     "target_false_accept_rate": 0.05
+    },
+    "test": {
+     "threshold": 0.3481,
+     "accepted_correct_rate": 0.3,
+     "accepted_wrong_rate_in_catalog": 0.0,
+     "false_accept_rate_ooc": 0.08333333333333333,
+     "precision_of_accepts": 0.8571428571428571,
+     "coverage_in_catalog": 0.15,
+     "auc_correct_vs_ooc": 0.7833333333333333
+    },
+    "dev": {
+     "threshold": 0.3481,
+     "accepted_correct_rate": 0.4827586206896552,
+     "accepted_wrong_rate_in_catalog": 0.2727272727272727,
+     "false_accept_rate_ooc": 0.0,
+     "precision_of_accepts": 0.8235294117647058,
+     "coverage_in_catalog": 0.425,
+     "auc_correct_vs_ooc": 0.8908045977011494
+    },
+    "platt": {
+     "coef": [
+      1.5981194750102137,
+      1.216506617992456
+     ],
+     "intercept": -0.3613939916494463
+    },
+    "calibration_test": {
+     "ece": 0.18521624237888137,
+     "brier": 0.2271293261236831,
+     "reliability": [
+      {
+       "bin": [
+        0.4,
+        0.5
+       ],
+       "n": 21,
+       "confidence": 0.4735138577010184,
+       "accuracy": 0.14285714285714285
+      },
+      {
+       "bin": [
+        0.5,
+        0.6
+       ],
+       "n": 27,
+       "confidence": 0.5360565402331467,
+       "accuracy": 0.48148148148148145
+      },
+      {
+       "bin": [
+        0.6,
+        0.7
+       ],
+       "n": 2,
+       "confidence": 0.6219338629197539,
+       "accuracy": 1.0
+      },
+      {
+       "bin": [
+        0.7,
+        0.8
+       ],
+       "n": 1,
+       "confidence": 0.7197806847692809,
+       "accuracy": 1.0
+      },
+      {
+       "bin": [
+        0.8,
+        0.9
+       ],
+       "n": 1,
+       "confidence": 0.822424583705731,
+       "accuracy": 1.0
+      }
+     ],
+     "n": 52
+    }
+   }
+  },
+  "note_align": {
+   "overall": {
+    "top1": 0.95,
+    "top3": 0.9875,
+    "top5": 1.0,
+    "top10": 1.0,
+    "mrr": 0.9697916666666666,
+    "n": 80
+   },
+   "by_condition": {
+    "chorus_mid_song": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "hum_clean": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "hum_detuned": {
+     "top1": 0.75,
+     "top3": 0.9375,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 0.8489583333333333,
+     "n": 16
+    },
+    "hum_tempo": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    },
+    "whistle": {
+     "top1": 1.0,
+     "top3": 1.0,
+     "top5": 1.0,
+     "top10": 1.0,
+     "mrr": 1.0,
+     "n": 16
+    }
+   },
+   "latency": {
+    "mean_ms": 2.2178401455416212,
+    "p50_ms": 2.1122295293025672,
+    "p95_ms": 3.189931373344734
+   },
+   "rejection": {
+    "thresholds_dev": {
+     "accept": 0.1544,
+     "uncertain": 0.1134,
+     "margin": 0.0,
+     "fitted_on": "dev half (even song indices)",
+     "target_false_accept_rate": 0.05
+    },
+    "test": {
+     "threshold": 0.1544,
+     "accepted_correct_rate": 0.9736842105263158,
+     "accepted_wrong_rate_in_catalog": 0.5,
+     "false_accept_rate_ooc": 0.08333333333333333,
+     "precision_of_accepts": 0.9487179487179487,
+     "coverage_in_catalog": 0.95,
+     "auc_correct_vs_ooc": 0.993421052631579
+    },
+    "dev": {
+     "threshold": 0.1544,
+     "accepted_correct_rate": 1.0,
+     "accepted_wrong_rate_in_catalog": 0.5,
+     "false_accept_rate_ooc": 0.0,
+     "precision_of_accepts": 0.9743589743589743,
+     "coverage_in_catalog": 0.975,
+     "auc_correct_vs_ooc": 1.0
+    },
+    "platt": {
+     "coef": [
+      2.3326709281343048,
+      2.0909871756420886
+     ],
+     "intercept": -0.5748823661742947
+    },
+    "calibration_test": {
+     "ece": 0.2219765120396857,
+     "brier": 0.08582895146351238,
+     "reliability": [
+      {
+       "bin": [
+        0.3,
+        0.4
+       ],
+       "n": 2,
+       "confidence": 0.360111009304545,
+       "accuracy": 0.0
+      },
+      {
+       "bin": [
+        0.4,
+        0.5
+       ],
+       "n": 13,
+       "confidence": 0.43870144379035264,
+       "accuracy": 0.07692307692307693
+      },
+      {
+       "bin": [
+        0.5,
+        0.6
+       ],
+       "n": 4,
+       "confidence": 0.5485046464866066,
+       "accuracy": 1.0
+      },
+      {
+       "bin": [
+        0.6,
+        0.7
+       ],
+       "n": 3,
+       "confidence": 0.6752189860547503,
+       "accuracy": 1.0
+      },
+      {
+       "bin": [
+        0.7,
+        0.8
+       ],
+       "n": 1,
+       "confidence": 0.707337245597847,
+       "accuracy": 1.0
+      },
+      {
+       "bin": [
+        0.8,
+        0.9
+       ],
+       "n": 13,
+       "confidence": 0.8656853943565862,
+       "accuracy": 1.0
+      },
+      {
+       "bin": [
+        0.9,
+        1.0
+       ],
+       "n": 16,
+       "confidence": 0.918727452842242,
+       "accuracy": 1.0
+      }
+     ],
+     "n": 52
+    }
+   }
+  }
+ },
+ "notes": {
+  "neural_skipped": "/Users/alejandro/Projects/MelodyAI/models/melody_encoder.pt not found (run `make train`)"
+ },
+ "lyrics": {
+  "overall": {
+   "top1": 1.0,
+   "top3": 1.0,
+   "top5": 1.0,
+   "top10": 1.0,
+   "mrr": 1.0,
+   "n": 80
+  },
+  "by_condition": {
+   "asr_like_typos": {
+    "top1": 1.0,
+    "top3": 1.0,
+    "top5": 1.0,
+    "top10": 1.0,
+    "mrr": 1.0,
+    "n": 20
+   },
+   "exact_lines": {
+    "top1": 1.0,
+    "top3": 1.0,
+    "top5": 1.0,
+    "top10": 1.0,
+    "mrr": 1.0,
+    "n": 20
+   },
+   "misremembered": {
+    "top1": 1.0,
+    "top3": 1.0,
+    "top5": 1.0,
+    "top10": 1.0,
+    "mrr": 1.0,
+    "n": 20
+   },
+   "partial_4_words": {
+    "top1": 1.0,
+    "top3": 1.0,
+    "top5": 1.0,
+    "top10": 1.0,
+    "mrr": 1.0,
+    "n": 20
+   }
+  },
+  "latency": {
+   "mean_ms": 0.8319025102537125,
+   "p50_ms": 0.778395973611623,
+   "p95_ms": 1.1821832740679383
+  },
+  "rejection": {
+   "thresholds_dev": {
+    "accept": 0.3105,
+    "uncertain": 0.2635,
+    "margin": 0.0,
+    "fitted_on": "dev half (even song indices)",
+    "target_false_accept_rate": 0.05
+   },
+   "test": {
+    "threshold": 0.3105,
+    "accepted_correct_rate": 1.0,
+    "accepted_wrong_rate_in_catalog": 0.0,
+    "false_accept_rate_ooc": 0.0,
+    "precision_of_accepts": 1.0,
+    "coverage_in_catalog": 1.0,
+    "auc_correct_vs_ooc": 1.0
+   },
+   "dev": {
+    "threshold": 0.3105,
+    "accepted_correct_rate": 1.0,
+    "accepted_wrong_rate_in_catalog": 0.0,
+    "false_accept_rate_ooc": 0.0,
+    "precision_of_accepts": 1.0,
+    "coverage_in_catalog": 1.0,
+    "auc_correct_vs_ooc": 1.0
+   },
+   "platt": {
+    "coef": [
+     2.2517226061383444,
+     2.1798581089614095
+    ],
+    "intercept": -1.1641075204138243
+   },
+   "calibration_test": {
+    "ece": 0.1404748787741693,
+    "brier": 0.033164245807658393,
+    "reliability": [
+     {
+      "bin": [
+       0.3,
+       0.4
+      ],
+      "n": 10,
+      "confidence": 0.35490940537254356,
+      "accuracy": 0.0
+     },
+     {
+      "bin": [
+       0.7,
+       0.8
+      ],
+      "n": 2,
+      "confidence": 0.7666889318813732,
+      "accuracy": 1.0
+     },
+     {
+      "bin": [
+       0.8,
+       0.9
+      ],
+      "n": 9,
+      "confidence": 0.8666576575850411,
+      "accuracy": 1.0
+     },
+     {
+      "bin": [
+       0.9,
+       1.0
+      ],
+      "n": 29,
+      "confidence": 0.9376570114823742,
+      "accuracy": 1.0
+     }
+    ],
+    "n": 50
+   }
+  }
+ },
+ "fusion": {
+  "skipped": "fusion benchmark needs the 48-song catalog (lyric songs span 0..38)"
+ },
+ "figures": [
+  "figures/top1_by_condition.png",
+  "figures/score_distributions.png",
+  "figures/reliability.png",
+  "figures/latency.png"
+ ],
+ "elapsed_s": 74.1,
+ "env": {
+  "python": "3.11.15",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "cpu_count": 12,
+  "memory_gb": 68.7,
+  "feature_version": "mel-v1",
+  "numpy_version": "2.4.6",
+  "scipy_version": "1.17.1",
+  "librosa_version": "0.11.0",
+  "numba_version": "0.68.1",
+  "torch_version": "2.15.0",
+  "faiss_version": "1.15.1",
+  "faster_whisper_version": "1.2.1",
+  "rapidfuzz_version": "3.14.6",
+  "sklearn_version": "1.9.1",
+  "torch_device": "mps",
+  "git_commit": "c530d7b"
+ }
+}

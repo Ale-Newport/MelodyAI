@@ -1,0 +1,61 @@
+name: default
+seed: 2026
+catalog_size: 48
+queries_per_song: 1
+conditions:
+- hum_clean
+- hum_transposed
+- hum_tempo
+- hum_detuned
+- hum_missing_notes
+- hum_noisy
+- hum_short
+- chorus_mid_song
+- whistle
+- sing_vowel
+out_of_catalog: 48
+non_melodic: 16
+pitch_extractor: pyin
+algorithms:
+- ls
+- dtw
+- subseq_dtw
+- chroma_dtw
+- note_align
+- ensemble
+- neural
+- neural_approx
+- neural_rerank
+- ensemble_neural
+neural_checkpoint: models/melody_encoder.pt
+pitch_extractor_comparison:
+  enabled: true
+  extractors:
+  - pyin
+  - crepe
+  - basic_pitch
+  conditions:
+  - hum_clean
+  - whistle
+  - hum_noisy
+  songs: 24
+  algorithm: ensemble
+lyrics:
+  enabled: true
+asr:
+  enabled: auto
+  model: base
+  lines_per_song: 1
+fusion:
+  enabled: true
+  methods:
+  - weighted
+  - rrf
+  - combmnz
+  - learned
+polyphonic:
+  enabled: true
+  songs: 16
+  algorithm: ensemble
+workers: 8
+write_calibration: true

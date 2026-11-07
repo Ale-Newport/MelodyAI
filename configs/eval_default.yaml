@@ -1,0 +1,35 @@
+# Full reproducible benchmark on the synthetic demo catalog.
+# Run: make evaluate   (or: python -m melodyai.cli evaluate --config configs/eval_default.yaml)
+name: default
+seed: 2026
+catalog_size: 48              # demo catalog (generator seeds 1000+), built in memory
+queries_per_song: 1           # per condition
+conditions: [hum_clean, hum_transposed, hum_tempo, hum_detuned, hum_missing_notes, hum_noisy, hum_short,
+             chorus_mid_song, whistle, sing_vowel]
+out_of_catalog: 48            # hummed excerpts of melodies NOT in the catalog (seeds 300000+)
+non_melodic: 16               # noise / silence / single tone / glissando
+pitch_extractor: pyin
+algorithms: [ls, dtw, subseq_dtw, chroma_dtw, note_align, ensemble, neural, neural_approx, neural_rerank,
+             ensemble_neural]
+neural_checkpoint: models/melody_encoder.pt
+pitch_extractor_comparison:   # small ablation: same queries through other f0 extractors
+  enabled: true
+  extractors: [pyin, crepe, basic_pitch]
+  conditions: [hum_clean, whistle, hum_noisy]
+  songs: 24
+  algorithm: ensemble
+lyrics:
+  enabled: true
+asr:
+  enabled: auto               # auto = only if macOS `say` exists and the Whisper model is cached
+  model: base
+  lines_per_song: 1
+fusion:
+  enabled: true
+  methods: [weighted, rrf, combmnz, learned]
+polyphonic:
+  enabled: true
+  songs: 16
+  algorithm: ensemble
+workers: 8
+write_calibration: true       # write configs/calibration.json (thresholds tuned on the dev half)

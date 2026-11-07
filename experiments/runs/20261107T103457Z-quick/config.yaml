@@ -1,0 +1,37 @@
+name: quick
+seed: 2026
+catalog_size: 16
+queries_per_song: 1
+conditions:
+- hum_clean
+- hum_tempo
+- hum_detuned
+- chorus_mid_song
+- whistle
+out_of_catalog: 16
+non_melodic: 8
+pitch_extractor: pyin
+algorithms:
+- ls
+- dtw
+- note_align
+- ensemble
+- neural
+- neural_rerank
+neural_checkpoint: models/melody_encoder.pt
+pitch_extractor_comparison:
+  enabled: false
+lyrics:
+  enabled: true
+asr:
+  enabled: false
+fusion:
+  enabled: true
+  methods:
+  - weighted
+  - rrf
+  - combmnz
+polyphonic:
+  enabled: false
+workers: 4
+write_calibration: false

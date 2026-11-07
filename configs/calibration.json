@@ -1,0 +1,134 @@
+{
+ "generated_at": "2026-11-07T11:57:02.139026+00:00",
+ "source_run": "20261107T113552Z-default",
+ "note": "Thresholds fitted on synthetic dev queries (false-accept target 5% on out-of-catalog queries). They are NOT validated on real recordings.",
+ "thresholds": {
+  "melody:chroma_dtw": {
+   "accept": 0.5694,
+   "uncertain": 0.4594,
+   "margin": 0.0
+  },
+  "melody:dtw": {
+   "accept": 0.6853,
+   "uncertain": 0.4637,
+   "margin": 0.0
+  },
+  "melody:ensemble": {
+   "accept": 0.5019,
+   "uncertain": 0.3521,
+   "margin": 0.0
+  },
+  "melody:ensemble_neural": {
+   "accept": 0.5455,
+   "uncertain": 0.3663,
+   "margin": 0.0
+  },
+  "melody:ls": {
+   "accept": 0.3691,
+   "uncertain": 0.2272,
+   "margin": 0.0
+  },
+  "melody:neural": {
+   "accept": 0.7015,
+   "uncertain": 0.59,
+   "margin": 0.0
+  },
+  "melody:neural_approx": {
+   "accept": 0.6955,
+   "uncertain": 0.5831,
+   "margin": 0.0
+  },
+  "melody:neural_rerank": {
+   "accept": 0.6853,
+   "uncertain": 0.4543,
+   "margin": 0.0
+  },
+  "melody:note_align": {
+   "accept": 0.261,
+   "uncertain": 0.1482,
+   "margin": 0.0
+  },
+  "melody:subseq_dtw": {
+   "accept": 0.6857,
+   "uncertain": 0.5309,
+   "margin": 0.0
+  },
+  "lyrics": {
+   "accept": 0.3105,
+   "uncertain": 0.2635,
+   "margin": 0.0
+  }
+ },
+ "platt": {
+  "melody:chroma_dtw": {
+   "coef": [
+    3.6497564286848467,
+    3.547581601907106
+   ],
+   "intercept": -1.0577672280773665
+  },
+  "melody:dtw": {
+   "coef": [
+    3.610701987579818,
+    3.8103499636781932
+   ],
+   "intercept": -1.2241792940186367
+  },
+  "melody:ensemble": {
+   "coef": [
+    4.37398666459791,
+    3.843248943278804
+   ],
+   "intercept": -1.3323540436346106
+  },
+  "melody:ensemble_neural": {
+   "coef": [
+    4.382704158875187,
+    3.7531349787680623
+   ],
+   "intercept": -1.3423403967249459
+  },
+  "melody:ls": {
+   "coef": [
+    2.9623559972846567,
+    3.712860399857554
+   ],
+   "intercept": -1.0201447375186008
+  },
+  "melody:neural": {
+   "coef": [
+    4.596378623519106,
+    3.6098215381978815
+   ],
+   "intercept": -2.6983005337405994
+  },
+  "melody:neural_approx": {
+   "coef": [
+    4.621564435117367,
+    3.6722461027194755
+   ],
+   "intercept": -2.745161514367906
+  },
+  "melody:neural_rerank": {
+   "coef": [
+    3.664298461032019,
+    3.850574194002123
+   ],
+   "intercept": -1.2890178181143408
+  },
+  "melody:note_align": {
+   "coef": [
+    4.064074304265581,
+    3.568618858638994
+   ],
+   "intercept": -0.6645226329144617
+  },
+  "melody:subseq_dtw": {
+   "coef": [
+    4.143465189364836,
+    3.381114336946288
+   ],
+   "intercept": -1.5254617565574562
+  }
+ }
+}

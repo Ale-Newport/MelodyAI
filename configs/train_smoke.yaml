@@ -1,0 +1,24 @@
+# Tiny configuration used by tests and CI (runs in seconds on CPU, NOT a useful model).
+name: smoke_encoder
+seed: 7
+n_train: 80
+n_val: 20
+n_points: 96
+channels: 32
+dim: 32
+n_layers: 1
+n_heads: 2
+dropout: 0.0
+loss: infonce
+temperature: 0.1
+batch_size: 32
+steps_per_epoch: 4
+epochs: 2
+lr: 0.002
+warmup_steps: 2
+patience: 5
+pipeline_pool_comps: 0
+pipeline_fraction: 0.0
+val_queries_per_comp: 1
+device: cpu
+export: false

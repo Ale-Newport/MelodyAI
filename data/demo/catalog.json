@@ -1,0 +1,2151 @@
+{
+ "name": "MelodyAI demo catalog",
+ "version": 1,
+ "base_seed": 1000,
+ "size": 48,
+ "license": "CC0-1.0",
+ "note": "Original procedurally generated melodies and original lyrics.",
+ "songs": [
+  {
+   "id": "demo-00",
+   "title": "Paper Boats",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1001",
+   "source": "MelodyAI procedural generator (seed=1001)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-00.mid",
+   "audio_file": "audio/demo-00.wav",
+   "lyrics_file": "lyrics/demo-00.json",
+   "generator": {
+    "seed": 1001,
+    "key": 53,
+    "scale": "lydian",
+    "meter": "3/4",
+    "tempo": 129.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 11.163
+    },
+    {
+     "name": "chorus",
+     "start": 11.163,
+     "end": 22.326
+    },
+    {
+     "name": "verse",
+     "start": 22.326,
+     "end": 33.488
+    },
+    {
+     "name": "chorus",
+     "start": 33.488,
+     "end": 44.651
+    }
+   ],
+   "n_notes": 92,
+   "duration_s": 44.58
+  },
+  {
+   "id": "demo-01",
+   "title": "Paper Harbor",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1009",
+   "source": "MelodyAI procedural generator (seed=1009)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-01.mid",
+   "audio_file": "audio/demo-01.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1009,
+    "key": 56,
+    "scale": "major_pentatonic",
+    "meter": "4/4",
+    "tempo": 115.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 16.696
+    },
+    {
+     "name": "chorus",
+     "start": 16.696,
+     "end": 33.391
+    },
+    {
+     "name": "chorus",
+     "start": 33.391,
+     "end": 50.087
+    }
+   ],
+   "n_notes": 102,
+   "duration_s": 50.05
+  },
+  {
+   "id": "demo-02",
+   "title": "The Lighthouse Keeper",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1014",
+   "source": "MelodyAI procedural generator (seed=1014)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-02.mid",
+   "audio_file": "audio/demo-02.wav",
+   "lyrics_file": "lyrics/demo-02.json",
+   "generator": {
+    "seed": 1014,
+    "key": 59,
+    "scale": "harmonic_minor",
+    "meter": "4/4",
+    "tempo": 105.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 18.286
+    },
+    {
+     "name": "chorus",
+     "start": 18.286,
+     "end": 36.571
+    },
+    {
+     "name": "chorus",
+     "start": 36.571,
+     "end": 54.857
+    }
+   ],
+   "n_notes": 108,
+   "duration_s": 54.81
+  },
+  {
+   "id": "demo-03",
+   "title": "Hollow Compass",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1017",
+   "source": "MelodyAI procedural generator (seed=1017)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-03.mid",
+   "audio_file": "audio/demo-03.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1017,
+    "key": 62,
+    "scale": "lydian",
+    "meter": "6/8",
+    "tempo": 103.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.981
+    },
+    {
+     "name": "chorus",
+     "start": 13.981,
+     "end": 27.961
+    },
+    {
+     "name": "chorus",
+     "start": 27.961,
+     "end": 41.942
+    }
+   ],
+   "n_notes": 80,
+   "duration_s": 41.92
+  },
+  {
+   "id": "demo-04",
+   "title": "Pocket Compass",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1021",
+   "source": "MelodyAI procedural generator (seed=1021)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-04.mid",
+   "audio_file": "audio/demo-04.wav",
+   "lyrics_file": "lyrics/demo-04.json",
+   "generator": {
+    "seed": 1021,
+    "key": 53,
+    "scale": "natural_minor",
+    "meter": "4/4",
+    "tempo": 107.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 17.944
+    },
+    {
+     "name": "chorus",
+     "start": 17.944,
+     "end": 35.888
+    },
+    {
+     "name": "chorus",
+     "start": 35.888,
+     "end": 53.832
+    }
+   ],
+   "n_notes": 94,
+   "duration_s": 53.74
+  },
+  {
+   "id": "demo-05",
+   "title": "Copper Carousel",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1028",
+   "source": "MelodyAI procedural generator (seed=1028)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-05.mid",
+   "audio_file": "audio/demo-05.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1028,
+    "key": 57,
+    "scale": "harmonic_minor",
+    "meter": "6/8",
+    "tempo": 134.0,
+    "form": "AABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.746
+    },
+    {
+     "name": "verse",
+     "start": 10.746,
+     "end": 21.493
+    },
+    {
+     "name": "chorus",
+     "start": 21.493,
+     "end": 32.239
+    },
+    {
+     "name": "verse",
+     "start": 32.239,
+     "end": 42.985
+    },
+    {
+     "name": "chorus",
+     "start": 42.985,
+     "end": 53.731
+    }
+   ],
+   "n_notes": 180,
+   "duration_s": 53.68
+  },
+  {
+   "id": "demo-06",
+   "title": "Copper Wires",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1031",
+   "source": "MelodyAI procedural generator (seed=1031)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-06.mid",
+   "audio_file": "audio/demo-06.wav",
+   "lyrics_file": "lyrics/demo-06.json",
+   "generator": {
+    "seed": 1031,
+    "key": 63,
+    "scale": "lydian",
+    "meter": "3/4",
+    "tempo": 132.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.909
+    },
+    {
+     "name": "chorus",
+     "start": 10.909,
+     "end": 21.818
+    },
+    {
+     "name": "chorus",
+     "start": 21.818,
+     "end": 32.727
+    }
+   ],
+   "n_notes": 70,
+   "duration_s": 32.69
+  },
+  {
+   "id": "demo-07",
+   "title": "Northern Signal",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1032",
+   "source": "MelodyAI procedural generator (seed=1032)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-07.mid",
+   "audio_file": "audio/demo-07.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1032,
+    "key": 55,
+    "scale": "mixolydian",
+    "meter": "6/8",
+    "tempo": 116.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 12.414
+    },
+    {
+     "name": "chorus",
+     "start": 12.414,
+     "end": 24.828
+    },
+    {
+     "name": "verse",
+     "start": 24.828,
+     "end": 37.241
+    },
+    {
+     "name": "chorus",
+     "start": 37.241,
+     "end": 49.655
+    }
+   ],
+   "n_notes": 140,
+   "duration_s": 49.63
+  },
+  {
+   "id": "demo-08",
+   "title": "Orange Peel",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1034",
+   "source": "MelodyAI procedural generator (seed=1034)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-08.mid",
+   "audio_file": "audio/demo-08.wav",
+   "lyrics_file": "lyrics/demo-08.json",
+   "generator": {
+    "seed": 1034,
+    "key": 54,
+    "scale": "harmonic_minor",
+    "meter": "6/8",
+    "tempo": 129.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 11.163
+    },
+    {
+     "name": "chorus",
+     "start": 11.163,
+     "end": 22.326
+    },
+    {
+     "name": "verse",
+     "start": 22.326,
+     "end": 33.488
+    },
+    {
+     "name": "chorus",
+     "start": 33.488,
+     "end": 44.651
+    }
+   ],
+   "n_notes": 140,
+   "duration_s": 44.63
+  },
+  {
+   "id": "demo-09",
+   "title": "Midnight Ferris Wheel",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1040",
+   "source": "MelodyAI procedural generator (seed=1040)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-09.mid",
+   "audio_file": "audio/demo-09.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1040,
+    "key": 61,
+    "scale": "dorian",
+    "meter": "6/8",
+    "tempo": 82.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 17.561
+    },
+    {
+     "name": "chorus",
+     "start": 17.561,
+     "end": 35.122
+    },
+    {
+     "name": "chorus",
+     "start": 35.122,
+     "end": 52.683
+    }
+   ],
+   "n_notes": 104,
+   "duration_s": 52.65
+  },
+  {
+   "id": "demo-10",
+   "title": "Yesterday's Kite",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1044",
+   "source": "MelodyAI procedural generator (seed=1044)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-10.mid",
+   "audio_file": "audio/demo-10.wav",
+   "lyrics_file": "lyrics/demo-10.json",
+   "generator": {
+    "seed": 1044,
+    "key": 62,
+    "scale": "dorian",
+    "meter": "4/4",
+    "tempo": 127.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 15.118
+    },
+    {
+     "name": "chorus",
+     "start": 15.118,
+     "end": 30.236
+    },
+    {
+     "name": "chorus",
+     "start": 30.236,
+     "end": 45.354
+    }
+   ],
+   "n_notes": 84,
+   "duration_s": 45.28
+  },
+  {
+   "id": "demo-11",
+   "title": "Broken Bridge",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1046",
+   "source": "MelodyAI procedural generator (seed=1046)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-11.mid",
+   "audio_file": "audio/demo-11.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1046,
+    "key": 61,
+    "scale": "major",
+    "meter": "4/4",
+    "tempo": 107.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 17.944
+    },
+    {
+     "name": "chorus",
+     "start": 17.944,
+     "end": 35.888
+    },
+    {
+     "name": "chorus",
+     "start": 35.888,
+     "end": 53.832
+    }
+   ],
+   "n_notes": 110,
+   "duration_s": 53.79
+  },
+  {
+   "id": "demo-12",
+   "title": "Midnight Train",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1048",
+   "source": "MelodyAI procedural generator (seed=1048)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-12.mid",
+   "audio_file": "audio/demo-12.wav",
+   "lyrics_file": "lyrics/demo-12.json",
+   "generator": {
+    "seed": 1048,
+    "key": 54,
+    "scale": "major_pentatonic",
+    "meter": "3/4",
+    "tempo": 136.0,
+    "form": "AABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.588
+    },
+    {
+     "name": "verse",
+     "start": 10.588,
+     "end": 21.176
+    },
+    {
+     "name": "chorus",
+     "start": 21.176,
+     "end": 31.765
+    },
+    {
+     "name": "verse",
+     "start": 31.765,
+     "end": 42.353
+    },
+    {
+     "name": "chorus",
+     "start": 42.353,
+     "end": 52.941
+    }
+   ],
+   "n_notes": 110,
+   "duration_s": 52.87
+  },
+  {
+   "id": "demo-13",
+   "title": "Distant Parade",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1050",
+   "source": "MelodyAI procedural generator (seed=1050)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-13.mid",
+   "audio_file": "audio/demo-13.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1050,
+    "key": 56,
+    "scale": "dorian",
+    "meter": "4/4",
+    "tempo": 140.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.714
+    },
+    {
+     "name": "chorus",
+     "start": 13.714,
+     "end": 27.429
+    },
+    {
+     "name": "verse",
+     "start": 27.429,
+     "end": 41.143
+    },
+    {
+     "name": "chorus",
+     "start": 41.143,
+     "end": 54.857
+    }
+   ],
+   "n_notes": 144,
+   "duration_s": 54.82
+  },
+  {
+   "id": "demo-14",
+   "title": "Satellite",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1055",
+   "source": "MelodyAI procedural generator (seed=1055)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-14.mid",
+   "audio_file": "audio/demo-14.wav",
+   "lyrics_file": "lyrics/demo-14.json",
+   "generator": {
+    "seed": 1055,
+    "key": 53,
+    "scale": "mixolydian",
+    "meter": "3/4",
+    "tempo": 105.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.714
+    },
+    {
+     "name": "chorus",
+     "start": 13.714,
+     "end": 27.429
+    },
+    {
+     "name": "chorus",
+     "start": 27.429,
+     "end": 41.143
+    }
+   ],
+   "n_notes": 76,
+   "duration_s": 41.1
+  },
+  {
+   "id": "demo-15",
+   "title": "Quiet Ember",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1060",
+   "source": "MelodyAI procedural generator (seed=1060)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-15.mid",
+   "audio_file": "audio/demo-15.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1060,
+    "key": 53,
+    "scale": "major",
+    "meter": "6/8",
+    "tempo": 109.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.211
+    },
+    {
+     "name": "chorus",
+     "start": 13.211,
+     "end": 26.422
+    },
+    {
+     "name": "verse",
+     "start": 26.422,
+     "end": 39.633
+    },
+    {
+     "name": "chorus",
+     "start": 39.633,
+     "end": 52.844
+    }
+   ],
+   "n_notes": 140,
+   "duration_s": 52.78
+  },
+  {
+   "id": "demo-16",
+   "title": "Salt on the Window",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1062",
+   "source": "MelodyAI procedural generator (seed=1062)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-16.mid",
+   "audio_file": "audio/demo-16.wav",
+   "lyrics_file": "lyrics/demo-16.json",
+   "generator": {
+    "seed": 1062,
+    "key": 54,
+    "scale": "minor_pentatonic",
+    "meter": "3/4",
+    "tempo": 120.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 12.0
+    },
+    {
+     "name": "chorus",
+     "start": 12.0,
+     "end": 24.0
+    },
+    {
+     "name": "verse",
+     "start": 24.0,
+     "end": 36.0
+    },
+    {
+     "name": "chorus",
+     "start": 36.0,
+     "end": 48.0
+    }
+   ],
+   "n_notes": 104,
+   "duration_s": 47.96
+  },
+  {
+   "id": "demo-17",
+   "title": "Faded Compass",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1067",
+   "source": "MelodyAI procedural generator (seed=1067)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-17.mid",
+   "audio_file": "audio/demo-17.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1067,
+    "key": 63,
+    "scale": "major",
+    "meter": "6/8",
+    "tempo": 124.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 11.613
+    },
+    {
+     "name": "chorus",
+     "start": 11.613,
+     "end": 23.226
+    },
+    {
+     "name": "verse",
+     "start": 23.226,
+     "end": 34.839
+    },
+    {
+     "name": "chorus",
+     "start": 34.839,
+     "end": 46.452
+    }
+   ],
+   "n_notes": 116,
+   "duration_s": 46.39
+  },
+  {
+   "id": "demo-18",
+   "title": "Winter Garden",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1076",
+   "source": "MelodyAI procedural generator (seed=1076)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-18.mid",
+   "audio_file": "audio/demo-18.wav",
+   "lyrics_file": "lyrics/demo-18.json",
+   "generator": {
+    "seed": 1076,
+    "key": 55,
+    "scale": "mixolydian",
+    "meter": "4/4",
+    "tempo": 136.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 14.118
+    },
+    {
+     "name": "chorus",
+     "start": 14.118,
+     "end": 28.235
+    },
+    {
+     "name": "chorus",
+     "start": 28.235,
+     "end": 42.353
+    }
+   ],
+   "n_notes": 120,
+   "duration_s": 42.32
+  },
+  {
+   "id": "demo-19",
+   "title": "Wild Train",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1078",
+   "source": "MelodyAI procedural generator (seed=1078)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-19.mid",
+   "audio_file": "audio/demo-19.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1078,
+    "key": 54,
+    "scale": "lydian",
+    "meter": "6/8",
+    "tempo": 132.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.909
+    },
+    {
+     "name": "chorus",
+     "start": 10.909,
+     "end": 21.818
+    },
+    {
+     "name": "verse",
+     "start": 21.818,
+     "end": 32.727
+    },
+    {
+     "name": "chorus",
+     "start": 32.727,
+     "end": 43.636
+    }
+   ],
+   "n_notes": 132,
+   "duration_s": 43.62
+  },
+  {
+   "id": "demo-20",
+   "title": "Ferris Wheel",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1080",
+   "source": "MelodyAI procedural generator (seed=1080)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-20.mid",
+   "audio_file": "audio/demo-20.wav",
+   "lyrics_file": "lyrics/demo-20.json",
+   "generator": {
+    "seed": 1080,
+    "key": 62,
+    "scale": "harmonic_minor",
+    "meter": "6/8",
+    "tempo": 128.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 11.25
+    },
+    {
+     "name": "chorus",
+     "start": 11.25,
+     "end": 22.5
+    },
+    {
+     "name": "chorus",
+     "start": 22.5,
+     "end": 33.75
+    }
+   ],
+   "n_notes": 104,
+   "duration_s": 33.73
+  },
+  {
+   "id": "demo-21",
+   "title": "Salt Train",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1084",
+   "source": "MelodyAI procedural generator (seed=1084)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-21.mid",
+   "audio_file": "audio/demo-21.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1084,
+    "key": 53,
+    "scale": "natural_minor",
+    "meter": "6/8",
+    "tempo": 137.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.511
+    },
+    {
+     "name": "chorus",
+     "start": 10.511,
+     "end": 21.022
+    },
+    {
+     "name": "chorus",
+     "start": 21.022,
+     "end": 31.533
+    }
+   ],
+   "n_notes": 116,
+   "duration_s": 31.52
+  },
+  {
+   "id": "demo-22",
+   "title": "Thread and Needle",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "en",
+   "composition_id": "melodyai-demo-1085",
+   "source": "MelodyAI procedural generator (seed=1085)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-22.mid",
+   "audio_file": "audio/demo-22.wav",
+   "lyrics_file": "lyrics/demo-22.json",
+   "generator": {
+    "seed": 1085,
+    "key": 58,
+    "scale": "harmonic_minor",
+    "meter": "6/8",
+    "tempo": 107.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.458
+    },
+    {
+     "name": "chorus",
+     "start": 13.458,
+     "end": 26.916
+    },
+    {
+     "name": "verse",
+     "start": 26.916,
+     "end": 40.374
+    },
+    {
+     "name": "chorus",
+     "start": 40.374,
+     "end": 53.832
+    }
+   ],
+   "n_notes": 128,
+   "duration_s": 53.76
+  },
+  {
+   "id": "demo-23",
+   "title": "Open Compass",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1089",
+   "source": "MelodyAI procedural generator (seed=1089)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-23.mid",
+   "audio_file": "audio/demo-23.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1089,
+    "key": 61,
+    "scale": "natural_minor",
+    "meter": "4/4",
+    "tempo": 133.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 14.436
+    },
+    {
+     "name": "chorus",
+     "start": 14.436,
+     "end": 28.872
+    },
+    {
+     "name": "chorus",
+     "start": 28.872,
+     "end": 43.308
+    }
+   ],
+   "n_notes": 106,
+   "duration_s": 43.27
+  },
+  {
+   "id": "demo-24",
+   "title": "Farolito",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1090",
+   "source": "MelodyAI procedural generator (seed=1090)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-24.mid",
+   "audio_file": "audio/demo-24.wav",
+   "lyrics_file": "lyrics/demo-24.json",
+   "generator": {
+    "seed": 1090,
+    "key": 54,
+    "scale": "dorian",
+    "meter": "3/4",
+    "tempo": 107.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.458
+    },
+    {
+     "name": "chorus",
+     "start": 13.458,
+     "end": 26.916
+    },
+    {
+     "name": "chorus",
+     "start": 26.916,
+     "end": 40.374
+    }
+   ],
+   "n_notes": 70,
+   "duration_s": 40.28
+  },
+  {
+   "id": "demo-25",
+   "title": "Paper Orchard",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1093",
+   "source": "MelodyAI procedural generator (seed=1093)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-25.mid",
+   "audio_file": "audio/demo-25.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1093,
+    "key": 58,
+    "scale": "minor_pentatonic",
+    "meter": "3/4",
+    "tempo": 82.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 17.561
+    },
+    {
+     "name": "chorus",
+     "start": 17.561,
+     "end": 35.122
+    },
+    {
+     "name": "chorus",
+     "start": 35.122,
+     "end": 52.683
+    }
+   ],
+   "n_notes": 80,
+   "duration_s": 52.57
+  },
+  {
+   "id": "demo-26",
+   "title": "El Río Baja Cantando",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1094",
+   "source": "MelodyAI procedural generator (seed=1094)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-26.mid",
+   "audio_file": "audio/demo-26.wav",
+   "lyrics_file": "lyrics/demo-26.json",
+   "generator": {
+    "seed": 1094,
+    "key": 55,
+    "scale": "major_pentatonic",
+    "meter": "3/4",
+    "tempo": 137.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.511
+    },
+    {
+     "name": "chorus",
+     "start": 10.511,
+     "end": 21.022
+    },
+    {
+     "name": "verse",
+     "start": 21.022,
+     "end": 31.533
+    },
+    {
+     "name": "chorus",
+     "start": 31.533,
+     "end": 42.044
+    }
+   ],
+   "n_notes": 84,
+   "duration_s": 42.01
+  },
+  {
+   "id": "demo-27",
+   "title": "Hollow Kite",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1096",
+   "source": "MelodyAI procedural generator (seed=1096)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-27.mid",
+   "audio_file": "audio/demo-27.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1096,
+    "key": 62,
+    "scale": "harmonic_minor",
+    "meter": "6/8",
+    "tempo": 123.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 11.707
+    },
+    {
+     "name": "chorus",
+     "start": 11.707,
+     "end": 23.415
+    },
+    {
+     "name": "chorus",
+     "start": 23.415,
+     "end": 35.122
+    }
+   ],
+   "n_notes": 100,
+   "duration_s": 35.1
+  },
+  {
+   "id": "demo-28",
+   "title": "El Huerto de mi Abuela",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1098",
+   "source": "MelodyAI procedural generator (seed=1098)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-28.mid",
+   "audio_file": "audio/demo-28.wav",
+   "lyrics_file": "lyrics/demo-28.json",
+   "generator": {
+    "seed": 1098,
+    "key": 57,
+    "scale": "harmonic_minor",
+    "meter": "4/4",
+    "tempo": 119.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 16.134
+    },
+    {
+     "name": "chorus",
+     "start": 16.134,
+     "end": 32.269
+    },
+    {
+     "name": "chorus",
+     "start": 32.269,
+     "end": 48.403
+    }
+   ],
+   "n_notes": 128,
+   "duration_s": 48.36
+  },
+  {
+   "id": "demo-29",
+   "title": "Copper Ferris Wheel",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1099",
+   "source": "MelodyAI procedural generator (seed=1099)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-29.mid",
+   "audio_file": "audio/demo-29.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1099,
+    "key": 59,
+    "scale": "natural_minor",
+    "meter": "4/4",
+    "tempo": 128.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 15.0
+    },
+    {
+     "name": "chorus",
+     "start": 15.0,
+     "end": 30.0
+    },
+    {
+     "name": "chorus",
+     "start": 30.0,
+     "end": 45.0
+    }
+   ],
+   "n_notes": 116,
+   "duration_s": 44.96
+  },
+  {
+   "id": "demo-30",
+   "title": "Bicicleta Azul",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1101",
+   "source": "MelodyAI procedural generator (seed=1101)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-30.mid",
+   "audio_file": "audio/demo-30.wav",
+   "lyrics_file": "lyrics/demo-30.json",
+   "generator": {
+    "seed": 1101,
+    "key": 53,
+    "scale": "natural_minor",
+    "meter": "6/8",
+    "tempo": 113.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 12.743
+    },
+    {
+     "name": "chorus",
+     "start": 12.743,
+     "end": 25.487
+    },
+    {
+     "name": "chorus",
+     "start": 25.487,
+     "end": 38.23
+    }
+   ],
+   "n_notes": 96,
+   "duration_s": 38.21
+  },
+  {
+   "id": "demo-31",
+   "title": "Northern Tide",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1105",
+   "source": "MelodyAI procedural generator (seed=1105)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-31.mid",
+   "audio_file": "audio/demo-31.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1105,
+    "key": 58,
+    "scale": "lydian",
+    "meter": "3/4",
+    "tempo": 136.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.588
+    },
+    {
+     "name": "chorus",
+     "start": 10.588,
+     "end": 21.176
+    },
+    {
+     "name": "verse",
+     "start": 21.176,
+     "end": 31.765
+    },
+    {
+     "name": "chorus",
+     "start": 31.765,
+     "end": 42.353
+    }
+   ],
+   "n_notes": 100,
+   "duration_s": 42.32
+  },
+  {
+   "id": "demo-32",
+   "title": "Corazón de Papel",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1106",
+   "source": "MelodyAI procedural generator (seed=1106)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-32.mid",
+   "audio_file": "audio/demo-32.wav",
+   "lyrics_file": "lyrics/demo-32.json",
+   "generator": {
+    "seed": 1106,
+    "key": 62,
+    "scale": "dorian",
+    "meter": "3/4",
+    "tempo": 135.0,
+    "form": "AABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.667
+    },
+    {
+     "name": "verse",
+     "start": 10.667,
+     "end": 21.333
+    },
+    {
+     "name": "chorus",
+     "start": 21.333,
+     "end": 32.0
+    },
+    {
+     "name": "verse",
+     "start": 32.0,
+     "end": 42.667
+    },
+    {
+     "name": "chorus",
+     "start": 42.667,
+     "end": 53.333
+    }
+   ],
+   "n_notes": 122,
+   "duration_s": 53.3
+  },
+  {
+   "id": "demo-33",
+   "title": "Midnight Kite",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1111",
+   "source": "MelodyAI procedural generator (seed=1111)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-33.mid",
+   "audio_file": "audio/demo-33.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1111,
+    "key": 60,
+    "scale": "minor_pentatonic",
+    "meter": "6/8",
+    "tempo": 140.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.286
+    },
+    {
+     "name": "chorus",
+     "start": 10.286,
+     "end": 20.571
+    },
+    {
+     "name": "verse",
+     "start": 20.571,
+     "end": 30.857
+    },
+    {
+     "name": "chorus",
+     "start": 30.857,
+     "end": 41.143
+    }
+   ],
+   "n_notes": 136,
+   "duration_s": 41.13
+  },
+  {
+   "id": "demo-34",
+   "title": "La Luna se fue de Viaje",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1117",
+   "source": "MelodyAI procedural generator (seed=1117)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-34.mid",
+   "audio_file": "audio/demo-34.wav",
+   "lyrics_file": "lyrics/demo-34.json",
+   "generator": {
+    "seed": 1117,
+    "key": 61,
+    "scale": "minor_pentatonic",
+    "meter": "3/4",
+    "tempo": 133.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.827
+    },
+    {
+     "name": "chorus",
+     "start": 10.827,
+     "end": 21.654
+    },
+    {
+     "name": "verse",
+     "start": 21.654,
+     "end": 32.481
+    },
+    {
+     "name": "chorus",
+     "start": 32.481,
+     "end": 43.308
+    }
+   ],
+   "n_notes": 88,
+   "duration_s": 43.27
+  },
+  {
+   "id": "demo-35",
+   "title": "Broken Train",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1118",
+   "source": "MelodyAI procedural generator (seed=1118)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-35.mid",
+   "audio_file": "audio/demo-35.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1118,
+    "key": 62,
+    "scale": "lydian",
+    "meter": "4/4",
+    "tempo": 140.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.714
+    },
+    {
+     "name": "chorus",
+     "start": 13.714,
+     "end": 27.429
+    },
+    {
+     "name": "verse",
+     "start": 27.429,
+     "end": 41.143
+    },
+    {
+     "name": "chorus",
+     "start": 41.143,
+     "end": 54.857
+    }
+   ],
+   "n_notes": 144,
+   "duration_s": 54.82
+  },
+  {
+   "id": "demo-36",
+   "title": "Tren de Madera",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1135",
+   "source": "MelodyAI procedural generator (seed=1135)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-36.mid",
+   "audio_file": "audio/demo-36.wav",
+   "lyrics_file": "lyrics/demo-36.json",
+   "generator": {
+    "seed": 1135,
+    "key": 59,
+    "scale": "minor_pentatonic",
+    "meter": "3/4",
+    "tempo": 94.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 15.319
+    },
+    {
+     "name": "chorus",
+     "start": 15.319,
+     "end": 30.638
+    },
+    {
+     "name": "chorus",
+     "start": 30.638,
+     "end": 45.957
+    }
+   ],
+   "n_notes": 74,
+   "duration_s": 45.91
+  },
+  {
+   "id": "demo-37",
+   "title": "Distant Thread",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1143",
+   "source": "MelodyAI procedural generator (seed=1143)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-37.mid",
+   "audio_file": "audio/demo-37.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1143,
+    "key": 56,
+    "scale": "dorian",
+    "meter": "6/8",
+    "tempo": 120.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 12.0
+    },
+    {
+     "name": "chorus",
+     "start": 12.0,
+     "end": 24.0
+    },
+    {
+     "name": "verse",
+     "start": 24.0,
+     "end": 36.0
+    },
+    {
+     "name": "chorus",
+     "start": 36.0,
+     "end": 48.0
+    }
+   ],
+   "n_notes": 116,
+   "duration_s": 47.94
+  },
+  {
+   "id": "demo-38",
+   "title": "Ventana del Panadero",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": "es",
+   "composition_id": "melodyai-demo-1147",
+   "source": "MelodyAI procedural generator (seed=1147)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-38.mid",
+   "audio_file": "audio/demo-38.wav",
+   "lyrics_file": "lyrics/demo-38.json",
+   "generator": {
+    "seed": 1147,
+    "key": 60,
+    "scale": "dorian",
+    "meter": "3/4",
+    "tempo": 135.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.667
+    },
+    {
+     "name": "chorus",
+     "start": 10.667,
+     "end": 21.333
+    },
+    {
+     "name": "chorus",
+     "start": 21.333,
+     "end": 32.0
+    }
+   ],
+   "n_notes": 84,
+   "duration_s": 31.96
+  },
+  {
+   "id": "demo-39",
+   "title": "Quiet Lighthouse",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1157",
+   "source": "MelodyAI procedural generator (seed=1157)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-39.mid",
+   "audio_file": "audio/demo-39.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1157,
+    "key": 62,
+    "scale": "dorian",
+    "meter": "3/4",
+    "tempo": 138.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 10.435
+    },
+    {
+     "name": "chorus",
+     "start": 10.435,
+     "end": 20.87
+    },
+    {
+     "name": "verse",
+     "start": 20.87,
+     "end": 31.304
+    },
+    {
+     "name": "chorus",
+     "start": 31.304,
+     "end": 41.739
+    }
+   ],
+   "n_notes": 112,
+   "duration_s": 41.7
+  },
+  {
+   "id": "demo-40",
+   "title": "Electric Thread",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1158",
+   "source": "MelodyAI procedural generator (seed=1158)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-40.mid",
+   "audio_file": "audio/demo-40.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1158,
+    "key": 58,
+    "scale": "major_pentatonic",
+    "meter": "4/4",
+    "tempo": 136.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 14.118
+    },
+    {
+     "name": "chorus",
+     "start": 14.118,
+     "end": 28.235
+    },
+    {
+     "name": "chorus",
+     "start": 28.235,
+     "end": 42.353
+    }
+   ],
+   "n_notes": 108,
+   "duration_s": 42.28
+  },
+  {
+   "id": "demo-41",
+   "title": "Faded Lantern",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1162",
+   "source": "MelodyAI procedural generator (seed=1162)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-41.mid",
+   "audio_file": "audio/demo-41.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1162,
+    "key": 53,
+    "scale": "lydian",
+    "meter": "4/4",
+    "tempo": 139.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.813
+    },
+    {
+     "name": "chorus",
+     "start": 13.813,
+     "end": 27.626
+    },
+    {
+     "name": "chorus",
+     "start": 27.626,
+     "end": 41.439
+    }
+   ],
+   "n_notes": 92,
+   "duration_s": 41.4
+  },
+  {
+   "id": "demo-42",
+   "title": "Hidden Parade",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1164",
+   "source": "MelodyAI procedural generator (seed=1164)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-42.mid",
+   "audio_file": "audio/demo-42.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1164,
+    "key": 59,
+    "scale": "dorian",
+    "meter": "3/4",
+    "tempo": 109.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.211
+    },
+    {
+     "name": "chorus",
+     "start": 13.211,
+     "end": 26.422
+    },
+    {
+     "name": "verse",
+     "start": 26.422,
+     "end": 39.633
+    },
+    {
+     "name": "chorus",
+     "start": 39.633,
+     "end": 52.844
+    }
+   ],
+   "n_notes": 88,
+   "duration_s": 52.8
+  },
+  {
+   "id": "demo-43",
+   "title": "Wild Carousel",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1165",
+   "source": "MelodyAI procedural generator (seed=1165)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-43.mid",
+   "audio_file": "audio/demo-43.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1165,
+    "key": 58,
+    "scale": "major_pentatonic",
+    "meter": "3/4",
+    "tempo": 104.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.846
+    },
+    {
+     "name": "chorus",
+     "start": 13.846,
+     "end": 27.692
+    },
+    {
+     "name": "chorus",
+     "start": 27.692,
+     "end": 41.538
+    }
+   ],
+   "n_notes": 78,
+   "duration_s": 41.49
+  },
+  {
+   "id": "demo-44",
+   "title": "Lunar Mirror",
+   "artist": "MelodyAI Synth Ensemble",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1167",
+   "source": "MelodyAI procedural generator (seed=1167)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-44.mid",
+   "audio_file": "audio/demo-44.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1167,
+    "key": 56,
+    "scale": "mixolydian",
+    "meter": "3/4",
+    "tempo": 114.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 12.632
+    },
+    {
+     "name": "chorus",
+     "start": 12.632,
+     "end": 25.263
+    },
+    {
+     "name": "verse",
+     "start": 25.263,
+     "end": 37.895
+    },
+    {
+     "name": "chorus",
+     "start": 37.895,
+     "end": 50.526
+    }
+   ],
+   "n_notes": 84,
+   "duration_s": 50.48
+  },
+  {
+   "id": "demo-45",
+   "title": "Salt Postcard",
+   "artist": "MelodyAI Folk Machine",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1171",
+   "source": "MelodyAI procedural generator (seed=1171)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-45.mid",
+   "audio_file": "audio/demo-45.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1171,
+    "key": 59,
+    "scale": "lydian",
+    "meter": "3/4",
+    "tempo": 112.0,
+    "form": "ABAB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 12.857
+    },
+    {
+     "name": "chorus",
+     "start": 12.857,
+     "end": 25.714
+    },
+    {
+     "name": "verse",
+     "start": 25.714,
+     "end": 38.571
+    },
+    {
+     "name": "chorus",
+     "start": 38.571,
+     "end": 51.429
+    }
+   ],
+   "n_notes": 100,
+   "duration_s": 51.39
+  },
+  {
+   "id": "demo-46",
+   "title": "Winter Mirror",
+   "artist": "MelodyAI Night Choir",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1175",
+   "source": "MelodyAI procedural generator (seed=1175)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-46.mid",
+   "audio_file": "audio/demo-46.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1175,
+    "key": 56,
+    "scale": "harmonic_minor",
+    "meter": "3/4",
+    "tempo": 106.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 13.585
+    },
+    {
+     "name": "chorus",
+     "start": 13.585,
+     "end": 27.17
+    },
+    {
+     "name": "chorus",
+     "start": 27.17,
+     "end": 40.755
+    }
+   ],
+   "n_notes": 82,
+   "duration_s": 40.71
+  },
+  {
+   "id": "demo-47",
+   "title": "Open Orchard",
+   "artist": "MelodyAI Pocket Orchestra",
+   "album": "MelodyAI Demo Catalog",
+   "year": 2026,
+   "language": null,
+   "composition_id": "melodyai-demo-1184",
+   "source": "MelodyAI procedural generator (seed=1184)",
+   "license": "CC0-1.0",
+   "reference_type": "midi",
+   "reference_file": "midi/demo-47.mid",
+   "audio_file": "audio/demo-47.wav",
+   "lyrics_file": null,
+   "generator": {
+    "seed": 1184,
+    "key": 62,
+    "scale": "major",
+    "meter": "3/4",
+    "tempo": 102.0,
+    "form": "ABB"
+   },
+   "sections": [
+    {
+     "name": "verse",
+     "start": 0.0,
+     "end": 14.118
+    },
+    {
+     "name": "chorus",
+     "start": 14.118,
+     "end": 28.235
+    },
+    {
+     "name": "chorus",
+     "start": 28.235,
+     "end": 42.353
+    }
+   ],
+   "n_notes": 64,
+   "duration_s": 42.26
+  }
+ ]
+}

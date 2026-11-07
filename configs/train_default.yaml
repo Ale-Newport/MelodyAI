@@ -1,0 +1,27 @@
+# Default training configuration for the neural melody encoder.
+# Run: make train   (or: python -m melodyai.cli train --config configs/train_default.yaml)
+name: melody_encoder
+seed: 1234
+n_train: 3000            # training compositions (seed range 100000+, disjoint from the demo catalog)
+n_val: 150               # validation compositions (seed range 200000+)
+n_points: 96             # contour length (must match melodyai.features.windows.N_POINTS)
+channels: 128
+dim: 128
+n_layers: 2
+n_heads: 4
+dropout: 0.1
+asymmetric: false
+loss: infonce            # infonce | triplet
+temperature: 0.07
+batch_size: 384
+steps_per_epoch: 100
+epochs: 30
+lr: 0.002
+weight_decay: 0.0001
+warmup_steps: 200
+patience: 6
+pipeline_pool_comps: 600 # compositions rendered to audio and passed through the real pYIN pipeline
+pipeline_fraction: 0.25  # share of positives drawn from that realistic pool
+val_queries_per_comp: 2
+device: auto             # auto | cpu | mps | cuda
+export: true             # copy best checkpoint to models/melody_encoder.pt

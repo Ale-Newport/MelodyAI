@@ -1,0 +1,12 @@
+{
+ "train_seed_range": "100000+",
+ "val_seed_range": "200000+",
+ "test_seed_range": "300000+",
+ "demo_seed_range": "1000+",
+ "removed_for_leakage": {
+  "n_train": 3000,
+  "n_eval": 298,
+  "shared_8gram_compositions": 197
+ },
+ "n_train_after": 2803
+}
