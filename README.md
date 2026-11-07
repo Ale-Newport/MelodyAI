@@ -2,7 +2,7 @@
 
 # MelodyAI
 
-**Recognise songs by humming, whistling, singing — or the words you remember.**
+**Recognise songs by humming, whistling, singing, the words you remember — or a clip of the song itself (TikTok, radio, sped up or slowed).**
 A research-grade, fully local query-by-humming engine with a web app, a benchmark harness and a training lab.
 
 [Quick start](#quick-start) · [Features](#features) · [How it works](#how-it-works) · [Results](#results) · [Limitations](#limitations) · [Docs](#documentation)
@@ -32,13 +32,21 @@ Then open the web app, listen to a song in **Practice with the catalog**, press 
 in the middle works too. No GPU, Docker, database server, API key or cloud service is needed.
 
 Optional: `make asr-model MODEL=base` (Whisper for spoken/sung lyrics), `make train` (neural encoder, ~20 min on Apple Silicon),
-`make evaluate` (full benchmark → `docs/RESULTS.md`), `make test`. Windows, Docker and configuration: [docs/INSTALLATION.md](docs/INSTALLATION.md).
+`make evaluate` (full benchmark → `docs/RESULTS.md`), `make evaluate-scale` (scale benchmark → `docs/SCALE_RESULTS.md`),
+`make ingest DIR=...` (bulk import of music you are licensed to use), `make test`.
+
+**Spotify / TikTok songs?** Their terms forbid using their audio this way, so MelodyAI cannot index them itself. To recognise
+commercial songs, configure the optional licensed provider (`MELODYAI_ACRCLOUD_*` in `.env`, then opt in under Settings); to build
+your own large catalog, ingest music you have the rights to. Details, legal background and sizing: [docs/SCALING.md](docs/SCALING.md). Windows, Docker and configuration: [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ## Features
 
 | | |
 |---|---|
-| **Five modes** | *Auto*, *Hum*, *Whistle*, *Lyrics* (spoken, sung or typed) and *Sing + words* (fused melody and lyrics evidence) |
+| **Six modes** | *Auto*, *Recording* (a clip of the actual track: TikTok/Reels, radio, a song playing nearby), *Hum*, *Whistle*, *Lyrics* (spoken, sung or typed) and *Sing + words* (fused melody and lyrics evidence) |
+| **TikTok-style clips** | Pitch-invariant audio fingerprinting with a speed grid and geometric verification: recognises sped-up/slowed, transposed, noisy and phone-recorded clips and reports *how* they were edited (×1.25, +3.9 semitones) |
+| **Commercial catalogs (optional)** | Opt-in adapter for a licensed provider (ACRCloud: 150 M+ tracks advertised) with Spotify/YouTube/Deezer links — MelodyAI never scrapes Spotify or TikTok ([why](docs/SCALING.md)) |
+| **Built to scale** | Log-structured, memory-mapped fingerprint segments; IVF-PQ vector index (16 B/vector) with two-stage hum search; parallel resumable ingestion; measured from 48 to 100,000 songs |
 | **Any part of the song** | References are indexed as overlapping multi-length windows; results report the matched time range |
 | **Robustness** | Key (transposition) and tempo invariance, octave-error correction, tolerance to wrong / missing / extra notes and moderate noise — each measured per condition |
 | **Abstention** | "No sufficiently reliable match was found" when evidence is weak; thresholds tuned on out-of-catalog queries; scores are *relative*, and a probability is shown only when calibrated |
@@ -116,6 +124,30 @@ What the evidence says (and does not say):
   distractors; 0% of hummed/whistled queries produced words. These are easy, synthetic conditions.
 * Re-running the benchmark reproduced every accuracy number exactly (fixed seeds).
 
+### At scale and on TikTok-style clips
+
+From `make evaluate-scale` (synthetic, full tables in **[docs/SCALE_RESULTS.md](docs/SCALE_RESULTS.md)**):
+
+| Recording clips (8 s) among 2,000 indexed recordings | Top-1 | Accepted as match |
+|---|---|---|
+| unedited / sped up ×1.1 / ×1.25 | 100% | 100% |
+| +2 semitones, ×1.15 time-stretch, 5 dB noise, phone mic | 92–96% | 85–94% |
+| slowed ×0.8 + reverb / heavy reverb | 83% / 77% | 77% / 71% |
+| someone talking over the music (as loud) | 67% | 6% |
+| *unknown recordings / hummed queries accepted (false accepts)* | | *10.4% / 0%* |
+
+Latency 383 ms mean at 2,000 recordings (38 h of audio); storage 8.2 MB per audio hour.
+
+| Hum/whistle among N songs (two-stage) | 48 | 1,000 | 10,000 | 100,000 |
+|---|---|---|---|---|
+| Top-1 | 96.2% | 91.0% | 84.8% | 72.1% |
+| Stage-1 recall@50 / @200 | 97.5% / 97.5% | 92.3% / 95.2% | 85.6% / 90.4% | 73.8% / 81.7% |
+| Latency (stage 1 + 2) | 64 ms | 149 ms | 476 ms | 554 ms |
+
+Humming search degrades as the catalog grows, and the limit is the neural first stage (its recall caps the top-1); exhaustive
+note alignment at 10,000 songs is slightly more accurate (88.5% on a 96-query subset) but 3× slower and grows linearly.
+Accuracy at Spotify scale is **not** extrapolated; [docs/SCALING.md](docs/SCALING.md) explains the architecture and what is missing.
+
 ## Screenshots
 
 | Melody Explorer | Research Lab |
@@ -123,12 +155,15 @@ What the evidence says (and does not say):
 | ![Explorer](docs/screenshots/explorer.jpg) | ![Lab](docs/screenshots/lab.jpg) |
 | **Library** | **Recognition (home)** |
 | ![Library](docs/screenshots/library.jpg) | ![Home](docs/screenshots/home.jpg) |
+| **Recording mode: a sped-up clip** | |
+| ![Recording](docs/screenshots/recording-clip.jpg) | |
 
 ## Limitations
 
 * **Synthetic evaluation only.** No real human query dataset has been evaluated yet (MTG-QBH, MIR-QBSH… must be obtained under their
   licences). `scripts/evaluate_recordings.py` evaluates your own labelled, consented recordings.
-* **Small catalog.** 48 songs; behaviour on thousands of songs is untested.
+* **Catalog size.** Measured up to 100,000 synthetic songs (hum) and 2,000 synthetic recordings (clips); hum accuracy degrades
+  with catalog size (see Results). Nothing was measured on real commercial catalogs.
 * **Polyphonic recordings.** Matching against produced commercial mixes is *not* solved here: the experimental Basic Pitch + skyline
   path was only measured on simple synthetic mixes.
 * **macOS vector search.** FAISS cannot share a process with PyTorch on macOS wheels (duplicate `libomp`); NumPy exact/IVF search is
@@ -139,11 +174,13 @@ Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 
 ## Roadmap
 
-1. Adapters and evaluation for MTG-QBH / MIR-QBSH (real hummed queries), then fine-tuning the encoder on real queries.
-2. Source separation (e.g. Demucs) + f0 tracking for polyphonic references, evaluated on licensed multitrack data (MedleyDB).
-3. Spectrogram-domain dual encoder (closer to Hum to Search) once real paired data is available.
-4. Large-catalog indexing: ONNX inference to allow FAISS on macOS, IVF-PQ, and a learned first stage before DTW.
-5. Lyrics-to-melody alignment so sung words and melody constrain the same time span.
+1. Adapters and evaluation for MTG-QBH / MIR-QBSH (real hummed queries), then fine-tuning the encoder on real queries
+   (stage-1 recall is the bottleneck of large-catalog hum search).
+2. Sharded fingerprint/ANN services and a live round trip with the licensed provider once credentials are available.
+3. Source separation (e.g. Demucs) + f0 tracking for polyphonic references, evaluated on licensed multitrack data (MedleyDB).
+4. Spectrogram-domain dual encoder (closer to Hum to Search) once real paired data is available.
+5. ONNX inference (to allow FAISS on macOS) and wiring the two-stage search into the live catalog as its default.
+6. Lyrics-to-melody alignment so sung words and melody constrain the same time span.
 
 ## Documentation
 
@@ -157,6 +194,8 @@ Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 | [TRAINING](docs/TRAINING.md) | neural encoder data, leakage control, objective, outputs |
 | [EVALUATION](docs/EVALUATION.md) | benchmark protocol and conditions |
 | [RESULTS](docs/RESULTS.md) | auto-generated benchmark report |
+| [SCALING](docs/SCALING.md) | Spotify/TikTok constraints, licensed provider setup, large-catalog architecture |
+| [SCALE_RESULTS](docs/SCALE_RESULTS.md) | auto-generated scale benchmark (48 → 100,000 songs; TikTok-style edits) |
 | [API](docs/API.md) | REST endpoints (OpenAPI at `/docs`) |
 | [LIMITATIONS](docs/LIMITATIONS.md) | what is verified, experimental, missing |
 | [CONTRIBUTING](docs/CONTRIBUTING.md) | workflow, adding matchers/extractors, data rules |

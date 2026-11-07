@@ -101,6 +101,8 @@ DEFAULT_THRESHOLDS = {
     "melody": {"accept": 0.55, "margin": 0.04, "uncertain": 0.40},
     "lyrics": {"accept": 0.60, "margin": 0.10, "uncertain": 0.40},
     "fused": {"accept": 0.50, "margin": 0.05, "uncertain": 0.35},
+    # score = verified peak-overlap fraction (true clips ~0.6-0.95, unknown recordings <~0.46)
+    "fingerprint": {"accept": 0.50, "margin": 0.10, "uncertain": 0.42},
 }
 
 

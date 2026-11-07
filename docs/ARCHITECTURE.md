@@ -30,8 +30,11 @@ flowchart LR
     ENG --> NEU[matching.neural: encoder + FAISS]
     ENG --> LYR[lyrics: faster-whisper ASR + FTS5/fuzzy search]
     ENG --> FUS[fusion: weighted / RRF / CombMNZ / learned + abstention]
+    ENG --> FP[fingerprint: quad hashes + verification<br/>clip mode]
+    ENG --> PROV[providers: ACRCloud<br/>optional, opt-in]
     CAT[catalog.service] --> MIDX[indexing.MelodyIndex]
     CAT --> LIDX[lyrics.LyricsIndex FTS5]
+    CAT --> FIDX[fingerprint.FingerprintIndex<br/>LSM segments, mmap]
     CAT --> DB[(SQLite / PostgreSQL)]
     CAT --> FS[(feature store .npz,<br/>media, embeddings cache)]
     EVAL[evaluation.runner] --> ENG
@@ -93,6 +96,11 @@ sequenceDiagram
 | `melodyai/lyrics/` | Normalisation, FTS5 + fuzzy alignment search, faster-whisper wrapper |
 | `melodyai/fusion/fusion.py` | Fusion strategies, abstention thresholds, Platt probability |
 | `melodyai/indexing/melody_index.py` | Incremental in-memory window index |
+| `melodyai/fingerprint/` | Log-frequency peaks, pitch-invariant quad hashes, segment index with verification (`clip` mode) |
+| `melodyai/indexing/ivfpq.py`, `vector.py` | IVF-PQ (NumPy) and exact/IVF vector search; FAISS where usable |
+| `melodyai/matching/scalable.py` | Two-stage melody search for large catalogs |
+| `melodyai/providers/` | Licensed external catalogs (ACRCloud adapter) |
+| `melodyai/evaluation/scale.py` | Scale benchmark (index size → accuracy/latency/memory) |
 | `melodyai/catalog/` | SQLAlchemy models, importers (MIDI, audio, lyrics, CSV/JSON), catalog service |
 | `melodyai/models/encoder.py` | PyTorch melody encoder |
 | `melodyai/training/` | Data generation/augmentation, contrastive training loop |
@@ -141,8 +149,10 @@ data/store/
 * Decoding never touches client-provided paths; ffmpeg receives bytes on stdin.
 * All IDs in paths are validated (`[A-Za-z0-9_.-]`, no `..`); experiment run IDs and figure
   names have their own strict patterns; neural checkpoints can only be chosen from a server-side list.
-* No outbound network calls in the recognition path. Whisper models are downloaded only by an
-  explicit command (`make asr-model`) or, if the server enables it, by a Settings action.
+* No outbound network calls in the recognition path, except the optional licensed provider, which needs
+  operator credentials *and* the user's opt-in, sends at most 12 s at 8 kHz, and validates the host name
+  (`identify-*.acrcloud.(com|cn)`). Whisper models are downloaded only by an explicit command
+  (`make asr-model`) or, if the server enables it, by a Settings action.
 * Raw audio is never written to disk unless retention is `keep_with_consent` *and* the request sets
   `retain_audio`. The history stores results (including derived pitch data) and can be deleted.
 * Logs do not contain audio or transcripts.

@@ -24,7 +24,7 @@ from melodyai.matching.explain import explain_alignment
 
 log = logging.getLogger(__name__)
 
-MODES = ("auto", "hum", "whistle", "lyrics", "combined")
+MODES = ("auto", "clip", "hum", "whistle", "lyrics", "combined")
 
 NO_MATCH_MESSAGE = "No sufficiently reliable match was found."
 
@@ -75,9 +75,11 @@ def melody_reliability(q: QueryFeatures) -> float:
 
 class RecognitionEngine:
     def __init__(self, melody_index: MelodyIndex, lyrics_index: LyricsIndex,
-                 settings: EngineSettings | None = None) -> None:
+                 settings: EngineSettings | None = None, fp_index=None, providers: list | None = None) -> None:
         self.melody_index = melody_index
+        self.providers = providers or []  # melodyai.providers (licensed external catalogs)
         self.lyrics_index = lyrics_index
+        self.fp_index = fp_index  # melodyai.fingerprint.index.FingerprintIndex (optional)
         self.settings = settings or EngineSettings()
         self.algorithms = default_algorithms()
         self.calibration = load_calibration()
@@ -129,7 +131,7 @@ class RecognitionEngine:
     def recognize(self, audio: Audio | None = None, text: str | None = None, mode: str = "auto",
                   algorithm: str | None = None, language: str | None = None, top_k: int | None = None,
                   pitch_extractor: str | None = None, fusion_method: str | None = None,
-                  explain: bool = True) -> dict:
+                  explain: bool = True, use_providers: bool = False, provider_policy: str = "fallback") -> dict:
         if mode not in MODES:
             raise ValueError(f"Unknown mode '{mode}'. Options: {MODES}")
         if audio is None and not (text and text.strip()):
@@ -141,6 +143,26 @@ class RecognitionEngine:
 
         want_melody = audio is not None and mode in ("auto", "hum", "whistle", "combined")
         want_lyrics = mode in ("auto", "lyrics", "combined")
+
+        # ---- fingerprint (recordings of the actual track: clips, TikTok edits, a song playing nearby).
+        # Cheap, so in Auto it runs first; a confident match ends the search.
+        fp_c: list[dict] = []
+        fp_decision: dict | None = None
+        if audio is not None and mode in ("auto", "clip") and self.fp_index is not None and len(self.fp_index):
+            t0 = time.perf_counter()
+            matches = self.fp_index.search(audio.samples, audio.sr, top_k=max(top_k, 10))
+            clip_s = len(audio.samples) / audio.sr
+            fp_c = [m.to_dict() for m in matches]
+            for c in fp_c:
+                c["end_time"] = round(c["start_time"] + clip_s * c["speed"], 3)
+            out["engines"]["fingerprint"] = {"candidates": fp_c, "status": "ok" if fp_c else "no_candidates",
+                                             "elapsed_s": round(time.perf_counter() - t0, 4)}
+            fp_decision = decide([{"song_id": c["song_id"], "score": c["score"]} for c in fp_c], "fingerprint",
+                                 None, self.calibration)
+            if mode == "clip" or fp_decision["status"] == "match":
+                want_melody = want_lyrics = False
+        elif mode == "clip":
+            out["warnings"].append("The fingerprint index is empty: import audio references (or MIDI with previews).")
 
         # ---- melody
         if want_melody:
@@ -191,7 +213,12 @@ class RecognitionEngine:
         mel_c = out["engines"].get("melody", {}).get("candidates", [])
         lyr_c = out["engines"].get("lyrics", {}).get("candidates", [])
         alg_name = out["engines"].get("melody", {}).get("algorithm")
-        if mel_c and lyr_c:
+        if fp_c and (mode == "clip" or (fp_decision and fp_decision["status"] == "match")):
+            resolved = "clip"
+            ranked = [{"song_id": c["song_id"], "score": c["score"], "engine_scores": {"fingerprint": c["score"]}}
+                      for c in fp_c]
+            decision = fp_decision
+        elif mel_c and lyr_c:
             resolved = "combined"
             method = fusion_method or self.settings.fusion_method
             outputs = [
@@ -218,6 +245,7 @@ class RecognitionEngine:
 
         mel_by = {c["song_id"]: (i + 1, c) for i, c in enumerate(mel_c)}
         lyr_by = {c["song_id"]: (i + 1, c) for i, c in enumerate(lyr_c)}
+        fp_by = {c["song_id"]: (i + 1, c) for i, c in enumerate(fp_c)} if resolved == "clip" else {}
         results = []
         for i, r in enumerate(ranked[:top_k]):
             sid = r["song_id"]
@@ -231,6 +259,11 @@ class RecognitionEngine:
                 rk, c = lyr_by[sid]
                 item["engines"]["lyrics"] = {"rank": rk, "score": c["score"], "matched_text": c["matched_text"],
                                              "line_range": c["line_range"]}
+            if sid in fp_by:
+                rk, c = fp_by[sid]
+                item["engines"]["fingerprint"] = {"rank": rk, **{k: c[k] for k in (
+                    "score", "evidence", "speed", "pitch_semitones", "start_time", "end_time")}}
+                item["match_start"], item["match_end"] = c["start_time"], c["end_time"]
             results.append(item)
         out["resolved_mode"] = resolved
         out["decision"] = decision
@@ -247,5 +280,33 @@ class RecognitionEngine:
                 out["alignment"] = explain_alignment(q, ref, top.get("match_start"), top.get("match_end"))
             except Exception:  # visualisation must never break recognition
                 log.exception("alignment explanation failed")
+        if use_providers and audio is not None:
+            out["external"] = self.run_providers(audio, mode, q, decision["status"], provider_policy)
         out["elapsed_s"] = round(time.perf_counter() - t_start, 4)
         return out
+
+    def run_providers(self, audio: Audio, mode: str, q: QueryFeatures | None, local_status: str,
+                      policy: str = "fallback") -> list[dict]:
+        """Query licensed external catalogs. ``fallback`` = only if the local catalog had no confident
+        match (sends less audio to third parties and costs less); ``always`` = every query."""
+        if policy == "fallback" and local_status == "match":
+            return []
+        if mode == "clip":
+            kinds = ["music"]
+        elif mode in ("hum", "whistle", "combined"):
+            kinds = ["humming"]
+        elif mode == "auto":
+            kinds = ["music"] + (["humming"] if q is not None and q.informative else [])
+        else:
+            return []
+        results = []
+        for p in self.providers:
+            for kind in kinds:
+                if p.supports(kind):
+                    try:
+                        results.append(p.identify(audio.samples, audio.sr, kind).to_dict())
+                    except Exception as e:  # a provider failure must never break local recognition
+                        log.exception("provider %s failed", getattr(p, "name", p))
+                        results.append({"provider": getattr(p, "name", "?"), "kind": kind, "status": "error",
+                                        "matches": [], "message": str(e)})
+        return results

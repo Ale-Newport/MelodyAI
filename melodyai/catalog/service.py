@@ -20,6 +20,7 @@ import os
 import shutil
 import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -39,6 +40,7 @@ from melodyai.features.extract import (
     reference_from_audio,
     reference_from_notes,
 )
+from melodyai.fingerprint.index import FingerprintIndex, fingerprint_audio
 from melodyai.indexing.melody_index import MelodyIndex
 from melodyai.lyrics.search import LyricsIndex
 
@@ -72,6 +74,35 @@ def song_to_dict(s: Song) -> dict:
     }
 
 
+@dataclass
+class ComputedSong:
+    """Everything indexing needs for one song; computable in a worker process."""
+    ref: ReferenceFeatures
+    peaks: object | None = None
+    hashes: object | None = None
+    duration_s: float | None = None
+
+
+def compute_song(song_id: str, reference_type: str, data: bytes, extra: dict | None = None,
+                 preview: bytes | None = None) -> ComputedSong:
+    """Melody features + audio fingerprint of a reference (pure function, no catalog state)."""
+    extra = extra or {}
+    if reference_type == "midi":
+        mel = load_midi_melody(data, extra.get("midi_track"))
+        samples = decode_audio(preview).samples if preview else None
+        ref = reference_from_notes(song_id, mel.notes, audio=samples, reference_type="midi")
+    else:
+        audio = decode_audio(data, ANALYSIS_SR, max_bytes=MAX_REFERENCE_BYTES, max_duration=MAX_REFERENCE_SECONDS)
+        samples = audio.samples
+        ref = reference_from_audio(song_id, audio, reference_type)
+    if len(ref.notes) < 3:
+        raise ImportErrorMelody("No usable melody could be extracted from the reference")
+    peaks = hashes = None
+    if samples is not None and len(samples) >= ANALYSIS_SR:
+        peaks, hashes = fingerprint_audio(samples, ANALYSIS_SR)
+    return ComputedSong(ref, peaks, hashes, len(samples) / ANALYSIS_SR if samples is not None else None)
+
+
 class Catalog:
     def __init__(self, root: Path | str | None = None, database_url: str | None = None) -> None:
         self.root = Path(root or store_dir())
@@ -83,7 +114,8 @@ class Catalog:
         self.Session = make_session_factory(url)
         self.melody_index = MelodyIndex()
         self.lyrics_index = LyricsIndex(str(self.root / "lyrics_fts.db"))
-        self.stats = {"features_computed": 0, "features_loaded": 0}
+        self.fp_index = FingerprintIndex(self.root / "fingerprints")
+        self.stats = {"features_computed": 0, "features_loaded": 0, "fingerprints_computed": 0}
         self._lock = threading.RLock()
         self._on_add: list[Callable[[ReferenceFeatures], None]] = []
         self._on_remove: list[Callable[[str], None]] = []
@@ -124,6 +156,42 @@ class Catalog:
             for ly in db.scalars(select(Lyrics)).all():
                 if ly.song_id not in self.lyrics_index:
                     self.lyrics_index.add(ly.song_id, ly.text, ly.language)
+            indexed = {s.id: s.reference_type for s in songs if s.index_status == "indexed"}
+        # Fingerprint index: drop deleted songs, back-fill songs indexed before fingerprints existed
+        # (or whose unflushed delta was lost when the process stopped).
+        for sid in [x for x in self.fp_index.slot if x not in indexed]:
+            self.fp_index.remove(sid)
+        for sid, rtype in indexed.items():
+            if sid not in self.fp_index:
+                self._fingerprint(sid, rtype)
+        self.fp_index.flush()
+
+    def audio_for_fingerprint(self, song_id: str, reference_type: str):
+        """The recording to fingerprint: the reference audio, or the rendered preview of a MIDI."""
+        try:
+            path = self.listen_file(song_id) if reference_type == "midi" else self.reference_file(song_id)
+        except NotFoundError:
+            return None
+        if path is None:
+            return None
+        try:
+            return decode_audio(path.read_bytes(), ANALYSIS_SR, max_bytes=MAX_REFERENCE_BYTES,
+                                max_duration=MAX_REFERENCE_SECONDS).samples
+        except AudioError:
+            return None
+
+    def _fingerprint(self, song_id: str, reference_type: str, samples=None) -> int:
+        samples = samples if samples is not None else self.audio_for_fingerprint(song_id, reference_type)
+        if samples is None or len(samples) < ANALYSIS_SR:
+            return 0
+        peaks, hashes = fingerprint_audio(samples, ANALYSIS_SR)
+        self.fp_index.add(song_id, hashes, len(samples) / ANALYSIS_SR, peaks)
+        self.stats["fingerprints_computed"] += 1
+        return len(hashes)
+
+    def flush_indexes(self) -> None:
+        """Persist in-memory index deltas (called after batch operations and at shutdown)."""
+        self.fp_index.flush()
 
     # ------------------------------------------------------------------ queries
     def list_songs(self, q: str | None = None, status: str | None = None, offset: int = 0,
@@ -185,7 +253,8 @@ class Catalog:
             "feature_version": FEATURE_VERSION, "melody_index": {
                 "songs": len(self.melody_index), "windows": len(self.melody_index.matrix()),
                 "window_lengths": list(self.melody_index.lengths), "version": self.melody_index.version},
-            "lyrics_index": {"songs": len(self.lyrics_index)}, "stats": dict(self.stats),
+            "lyrics_index": {"songs": len(self.lyrics_index)}, "fingerprint_index": self.fp_index.stats(),
+            "stats": dict(self.stats),
         }
 
     def find_duplicates(self) -> list[dict]:
@@ -200,7 +269,7 @@ class Catalog:
 
     # ------------------------------------------------------------------ mutations
     def add_song(self, meta: dict, reference: bytes, filename: str, lyrics: dict | None = None,
-                 index: bool = True, preview_wav: bytes | None = None) -> dict:
+                 index: bool = True, preview_wav: bytes | None = None, precomputed: ComputedSong | None = None) -> dict:
         ext = Path(filename).suffix.lower()
         if ext not in MIDI_EXTENSIONS | AUDIO_EXTENSIONS:
             raise ImportErrorMelody(f"Unsupported reference format '{ext}'")
@@ -214,14 +283,16 @@ class Catalog:
         if (ext in MIDI_EXTENSIONS) != (rtype == "midi"):
             raise ImportErrorMelody("reference_type 'midi' requires a .mid file (and vice versa)")
         digest = hashlib.sha256(reference).hexdigest()
-        # Validate the file before storing anything.
-        if ext in MIDI_EXTENSIONS:
-            load_midi_melody(reference, meta.get("midi_track"))
-        else:
-            try:
-                decode_audio(reference, ANALYSIS_SR, max_bytes=MAX_REFERENCE_BYTES, max_duration=MAX_REFERENCE_SECONDS)
-            except AudioError as e:
-                raise ImportErrorMelody(str(e)) from e
+        # Validate the file before storing anything (precomputed features imply it was decoded already).
+        if precomputed is None:
+            if ext in MIDI_EXTENSIONS:
+                load_midi_melody(reference, meta.get("midi_track"))
+            else:
+                try:
+                    decode_audio(reference, ANALYSIS_SR, max_bytes=MAX_REFERENCE_BYTES,
+                                 max_duration=MAX_REFERENCE_SECONDS)
+                except AudioError as e:
+                    raise ImportErrorMelody(str(e)) from e
         with self._lock, self.Session() as db:
             existing = db.scalar(select(Song).where(Song.content_hash == digest))
             if existing is not None:
@@ -249,9 +320,15 @@ class Catalog:
             db.commit()
         if lyrics and lyrics.get("text"):
             self.lyrics_index.add(sid, lyrics["text"], lyrics.get("language") or meta.get("language") or "en")
-        if index:
+        if precomputed is not None:
+            self._store_computed(sid, precomputed)
+        elif index:
             self.index_song(sid)
         return self.get_song(sid)
+
+    def known_hashes(self) -> set[str]:
+        with self.Session() as db:
+            return set(db.scalars(select(Song.content_hash)).all())
 
     def index_song(self, song_id: str) -> dict:
         """Compute features for ONE song and add it to the indexes (incremental)."""
@@ -263,32 +340,10 @@ class Catalog:
             db.commit()
             rtype, extra = s.reference_type, s.extra
         try:
-            path = self.reference_file(song_id)
-            data = path.read_bytes()
-            if rtype == "midi":
-                mel = load_midi_melody(data, extra.get("midi_track"))
-                preview = self.listen_file(song_id)
-                audio = decode_audio(preview.read_bytes()).samples if preview else None
-                ref = reference_from_notes(song_id, mel.notes, audio=audio, reference_type="midi")
-            else:
-                audio = decode_audio(data, ANALYSIS_SR, max_bytes=MAX_REFERENCE_BYTES,
-                                     max_duration=MAX_REFERENCE_SECONDS)
-                ref = reference_from_audio(song_id, audio, rtype)
-            if len(ref.notes) < 3:
-                raise ImportErrorMelody("No usable melody could be extracted from the reference")
-            ref.save(self.feature_path(song_id))
-            self.stats["features_computed"] += 1
-            n_windows = self.melody_index.add(ref)
-            for cb in self._on_add:
-                cb(ref)
-            with self.Session() as db:
-                s = db.get(Song, song_id)
-                s.index_status, s.index_error = "indexed", None
-                s.feature_version, s.n_notes, s.n_windows = FEATURE_VERSION, len(ref.notes), n_windows
-                s.duration_s = round(float(ref.notes.end_time), 3)
-                if ref.meta:
-                    s.extra_json = json.dumps({**s.extra, **ref.meta})
-                db.commit()
+            preview = self.listen_file(song_id) if rtype == "midi" else None
+            comp = compute_song(song_id, rtype, self.reference_file(song_id).read_bytes(), extra,
+                                preview.read_bytes() if preview else None)
+            self._store_computed(song_id, comp)
         except Exception as e:
             log.exception("indexing failed for %s", song_id)
             with self.Session() as db:
@@ -297,6 +352,27 @@ class Catalog:
                     s.index_status, s.index_error = "error", str(e)[:2000]
                     db.commit()
         return self.get_song(song_id)
+
+    def _store_computed(self, song_id: str, comp: ComputedSong) -> None:
+        ref = comp.ref
+        ref.song_id = song_id
+        if comp.hashes is not None:
+            self.fp_index.add(song_id, comp.hashes, comp.duration_s, comp.peaks)
+            self.stats["fingerprints_computed"] += 1
+        ref.meta = {**ref.meta, "fingerprint_hashes": len(comp.hashes) if comp.hashes is not None else 0}
+        ref.save(self.feature_path(song_id))
+        self.stats["features_computed"] += 1
+        n_windows = self.melody_index.add(ref)
+        for cb in self._on_add:
+            cb(ref)
+        with self.Session() as db:
+            s = db.get(Song, song_id)
+            s.index_status, s.index_error = "indexed", None
+            s.feature_version, s.n_notes, s.n_windows = FEATURE_VERSION, len(ref.notes), n_windows
+            s.duration_s = round(float(ref.notes.end_time), 3)
+            if ref.meta:
+                s.extra_json = json.dumps({**s.extra, **ref.meta})
+            db.commit()
 
     def reindex(self, song_ids: list[str] | None = None, only_needed: bool = True,
                 progress: Callable[[float, str], None] | None = None) -> dict:
@@ -312,6 +388,7 @@ class Catalog:
             done += 1
             if progress:
                 progress((i + 1) / len(todo), f"indexed {sid}")
+        self.flush_indexes()
         return {"reindexed": done, "requested": len(todo)}
 
     def update_song(self, song_id: str, fields: dict) -> dict:
@@ -354,6 +431,7 @@ class Catalog:
             db.commit()
         self.melody_index.remove(song_id)
         self.lyrics_index.remove(song_id)
+        self.fp_index.remove(song_id)
         for cb in self._on_remove:
             cb(song_id)
         self.feature_path(song_id).unlink(missing_ok=True)

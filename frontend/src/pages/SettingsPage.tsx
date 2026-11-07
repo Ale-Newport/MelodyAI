@@ -58,7 +58,7 @@ export default function SettingsPage() {
         <div className="mt-2">
           <Row label="Language"><Select value={settings.ui_language} onValueChange={(v) => set({ ui_language: v as any })} options={[{ value: "en", label: "English" }, { value: "es", label: "Español" }]} /></Row>
           <Row label="Theme"><Select value={settings.theme} onValueChange={(v) => set({ theme: v as any })} options={[{ value: "dark", label: "Dark" }, { value: "light", label: "Light" }, { value: "system", label: "System" }]} /></Row>
-          <Row label="Default mode"><Select value={settings.default_mode} onValueChange={(v) => set({ default_mode: v as any })} options={["auto", "hum", "whistle", "lyrics", "combined"].map((m) => ({ value: m, label: m }))} /></Row>
+          <Row label="Default mode"><Select value={settings.default_mode} onValueChange={(v) => set({ default_mode: v as any })} options={["auto", "clip", "hum", "whistle", "lyrics", "combined"].map((m) => ({ value: m, label: m === "clip" ? "recording (clip)" : m }))} /></Row>
         </div>
       </Card>
 
@@ -106,6 +106,26 @@ export default function SettingsPage() {
             {job.data && <Progress className="mt-2" value={job.data.progress} indeterminate={job.data.status === "running"} />}
           </Row>
           <Row label="Speech language"><Select value={settings.asr_language ?? "auto"} onValueChange={(v) => set({ asr_language: v === "auto" ? null : (v as any) })} options={[{ value: "auto", label: "Auto-detect" }, { value: "en", label: "English" }, { value: "es", label: "Español" }]} /></Row>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Licensed catalog provider (optional)" subtitle="Find commercial songs that are not in your local catalog, e.g. what you hear on Spotify or TikTok, through a provider that licenses that catalog." />
+        <div className="mt-2">
+          {(models.data?.providers ?? []).map((p) => (
+            <Row key={p.name} label={p.label} hint={p.configured ? `Configured (${p.host}) · recordings: ${p.music ? "yes" : "no"} · humming: ${p.humming ? "yes" : "no"}` : p.invalid_host ? "Invalid host in MELODYAI_ACRCLOUD_HOST" : "Not configured: set MELODYAI_ACRCLOUD_HOST, _ACCESS_KEY and _ACCESS_SECRET in .env and restart the server (see docs/SCALING.md)."}>
+              <Badge tone={p.configured ? "ok" : "neutral"}>{p.configured ? "configured" : "not configured"}</Badge>
+            </Row>
+          ))}
+          <Row label="Send recordings to the provider" hint="Privacy: when enabled, up to 12 s of each recording leave this computer and are processed by the provider under its terms. Off by default.">
+            <Switch checked={settings.external_provider_enabled} onCheckedChange={(v) => set({ external_provider_enabled: v })} label="Send recordings to the provider" />
+          </Row>
+          <Row label="When to ask the provider" hint="Fallback: only when your local catalog has no confident match (less data shared, lower cost).">
+            <Select value={settings.provider_policy} onValueChange={(v) => set({ provider_policy: v as any })} options={[{ value: "fallback", label: "Only if not found locally" }, { value: "always", label: "Always" }]} />
+          </Row>
+          {settings.external_provider_enabled && !models.data?.providers_enabled && (
+            <p className="px-5 pb-4 text-xs text-warn">Enabled, but no provider is configured on the server, so nothing will be sent.</p>
+          )}
         </div>
       </Card>
 

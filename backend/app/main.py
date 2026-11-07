@@ -37,6 +37,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         warmup()
         yield
         app.state.melody.jobs.pool.shutdown(wait=False, cancel_futures=True)
+        app.state.melody.catalog.flush_indexes()
 
     app = FastAPI(
         title="MelodyAI API", version=__version__, lifespan=lifespan,

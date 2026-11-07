@@ -8,8 +8,8 @@ is meant to run on your machine).
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/recognize` | Recognise; form field `mode` = `auto` \| `hum` \| `whistle` \| `lyrics` \| `combined` |
-| POST | `/api/recognize/{hum,whistle,lyrics,combined}` | Same, mode fixed by the path |
+| POST | `/api/recognize` | Recognise; form field `mode` = `auto` \| `clip` \| `hum` \| `whistle` \| `lyrics` \| `combined` |
+| POST | `/api/recognize/{clip,hum,whistle,lyrics,combined}` | Same, mode fixed by the path (`clip` = recording of the actual track: fingerprinting) |
 | GET | `/api/recognitions?limit=20` | History (results only) |
 | GET | `/api/recognitions/{id}` | One stored result |
 | DELETE | `/api/recognitions/{id}` | Delete one result (and its recording if retained) |
@@ -48,7 +48,15 @@ Response (abridged):
 }
 ```
 
-`score` is a **relative similarity** within the chosen algorithm, not a probability.
+`score` is a **relative similarity** within the chosen algorithm, not a probability. In `clip` mode
+it is the verified peak-overlap fraction and `results[].engines.fingerprint` adds `speed` (clip speed
+relative to the original), `pitch_semitones`, `evidence` and the matched `start_time`/`end_time`.
+
+If the user enabled the licensed provider in Settings and the server has credentials, the response also
+contains `external`: a list of `{provider, kind: "music"|"humming", status: match|no_result|error,
+matches: [{title, artists, album, release_date, isrc, score, score_kind, play_offset_s, links: {spotify,
+youtube, deezer, musicbrainz}}], sent_seconds, elapsed_s}`. These results are separate from `results`
+(different catalog, different score scale).
 
 Errors: `400` empty file / invalid id, `413` file too large, `422` undecodable or too long/short
 audio, unknown algorithm, invalid parameters.
@@ -84,10 +92,10 @@ name against the uploaded files; no server paths are ever read.
 | Method | Path | Description |
 |---|---|---|
 | POST | `/api/audio/analyze` | `audio`, `profile` (hum/whistle/sing), `extractor`, `song_id?`, `match` → waveform, spectrogram, pitch track, notes, intervals, chroma, alignment |
-| GET | `/api/models` | Pitch extractors, matching algorithms, Whisper model status, neural checkpoints, device |
+| GET | `/api/models` | Pitch extractors, matching algorithms, Whisper model status, neural checkpoints, device, licensed providers (configured? recordings/humming) |
 | POST | `/api/models/neural/activate` | JSON `{checkpoint}` (id from `/api/models`) |
 | POST | `/api/models/asr/download` | JSON `{model}`; only if `MELODYAI_ALLOW_MODEL_DOWNLOAD=true` |
-| GET | `/api/experiments` | Benchmark runs + training runs |
+| GET | `/api/experiments` | Benchmark runs, scale runs and training runs |
 | GET | `/api/experiments/{run_id}` | Full `metrics.json` |
 | GET | `/api/experiments/{run_id}/queries?algorithm=&condition=&only_errors=` | Per-query rows |
 | GET | `/api/experiments/{run_id}/figures/{name}.png` | Figures |
@@ -104,7 +112,7 @@ message, config, result, error, created_at, started_at, finished_at}`.
 
 | Method | Path | Description |
 |---|---|---|
-| GET / PUT | `/api/settings` | UI language, theme, default mode, algorithm, extractor, fusion, ASR model/language, recording limits, top-k, history, retention |
+| GET / PUT | `/api/settings` | UI language, theme, default mode, algorithm, extractor, fusion, ASR model/language, recording limits, top-k, history, retention, `external_provider_enabled` (consent, default false), `provider_policy` (`fallback` \| `always`) |
 | GET | `/api/health` | Version, song counts, ASR readiness, neural model, device, ffmpeg, limits |
 
 ## Limits (environment variables)

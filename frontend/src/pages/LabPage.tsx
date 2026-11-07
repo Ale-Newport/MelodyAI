@@ -436,6 +436,88 @@ function TrainingTab() {
   );
 }
 
+function ScaleTab() {
+  const runs = useQuery({ queryKey: ["experiments"], queryFn: api.experiments });
+  const id = runs.data?.scale?.[0]?.run_id;
+  const m = useQuery({ queryKey: ["scale", id], queryFn: () => api.scaleRun(id!), enabled: !!id });
+  if (runs.isLoading || m.isLoading) return <Skeleton className="h-64" />;
+  if (!id) return <Card className="p-8 text-center text-muted">No scale benchmark yet. Run <code className="font-mono">make evaluate-scale</code> (≈40 min).</Card>;
+  const d = m.data!;
+  const mel = d.melody?.sizes ?? {};
+  const fp = d.fingerprint?.sizes ?? {};
+  const fpSizes = Object.keys(fp);
+  const conds = fpSizes.length ? Object.keys(fp[fpSizes[0]].by_condition) : [];
+  const curve = Object.entries(mel).map(([n, e]) => ({ n: Number(n), two: e.two_stage.top1, ann: e.neural_ann_only.top1, exh: e.exhaustive_note_align?.top1 ?? null, recall: e.candidate_recall }));
+  return (
+    <div className="space-y-5">
+      <p className="rounded-xl border border-warn/30 bg-warn/5 p-3 text-xs text-warn">
+        Synthetic: the 48 demo songs are hidden among procedurally generated distractors. Real catalogs are more diverse in timbre but contain covers, remixes and near-duplicates. Run {d.run_id}, {Math.round(d.elapsed_s / 60)} min on {d.env.machine}.
+      </p>
+      {!!curve.length && (
+        <Card>
+          <CardHeader title="Hum/whistle recognition vs catalog size" subtitle={`Two-stage = neural IVF-PQ (${d.melody!.nlist} lists, ${d.melody!.m} B/vector, nprobe ${d.melody!.nprobe}) → top-${d.melody!.n_candidates} songs → DTW + note alignment`} />
+          <div className="h-64 p-4">
+            <ResponsiveContainer>
+              <LineChart data={curve}>
+                <CartesianGrid strokeOpacity={0.15} />
+                <XAxis dataKey="n" scale="log" type="number" domain={["dataMin", "dataMax"]} tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} />
+                <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line dataKey="two" name="two-stage top-1" stroke="rgb(var(--accent))" strokeWidth={2} />
+                <Line dataKey="ann" name="neural ANN only top-1" stroke="rgb(var(--accent2))" />
+                <Line dataKey="recall" name="stage-1 candidate recall" stroke="rgb(var(--ok))" strokeDasharray="4 4" />
+                <Line dataKey="exh" name="exhaustive note alignment top-1" stroke="#999" connectNulls={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="overflow-x-auto px-4 pb-4">
+            <table className="w-full text-sm tabular">
+              <thead className="text-left text-xs text-muted"><tr><th className="p-2">Songs</th><th className="p-2">Two-stage top-1</th><th className="p-2">MRR</th><th className="p-2">Candidate recall (@10 / 50 / 200 / 500)</th><th className="p-2">Latency (stage 1 + 2)</th><th className="p-2">Exhaustive top-1 / latency</th><th className="p-2">ANN index</th><th className="p-2">AUC vs OOC</th></tr></thead>
+              <tbody>
+                {Object.entries(mel).map(([n, e]) => (
+                  <tr key={n} className="border-t border-border/40">
+                    <td className="p-2 font-medium">{Number(n).toLocaleString()}</td>
+                    <td className="p-2">{pct(e.two_stage.top1, 1)}</td>
+                    <td className="p-2">{fixed(e.two_stage.mrr, 3)}</td>
+                    <td className="p-2">{e.candidate_recall_at ? ["10", "50", "200", "500"].map((k) => pct(e.candidate_recall_at![k], 0)).join(" / ") : pct(e.candidate_recall, 1)}</td>
+                    <td className="p-2">{fixed(e.latency_stage1.mean_ms, 0)} + {fixed(e.latency_stage2.mean_ms, 0)} ms</td>
+                    <td className="p-2">{e.exhaustive_note_align ? `${pct(e.exhaustive_note_align.top1, 0)} / ${fixed(e.exhaustive_note_align.latency.mean_ms, 0)} ms` : "–"}</td>
+                    <td className="p-2">{(e.ann_vectors / 1e6).toFixed(2)}M vec · {fixed(e.ann_index_mb, 0)} MB</td>
+                    <td className="p-2">{fixed(e.auc_correct_vs_ooc, 3)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+      {!!fpSizes.length && (
+        <Card>
+          <CardHeader title="Recording / TikTok-style clips vs index size" subtitle={`${d.fingerprint!.clip_seconds}-s clips; 'accepted' = top-1 correct and score ≥ ${d.fingerprint!.accept_threshold}`} />
+          <div className="overflow-x-auto p-4">
+            <table className="w-full text-xs tabular">
+              <thead className="text-muted"><tr><th className="p-2 text-left">Edit</th>{fpSizes.map((n) => <th key={n} className="p-2">{n} rec. top-1 / accepted</th>)}</tr></thead>
+              <tbody>
+                {conds.map((c) => (
+                  <tr key={c} className="border-t border-border/40">
+                    <td className="p-2 font-medium">{c.replace(/_/g, " ")}</td>
+                    {fpSizes.map((n) => <td key={n} className="p-2 text-center" style={heat(fp[n].by_condition[c].top1)}>{pct(fp[n].by_condition[c].top1, 0)} / {pct(fp[n].by_condition[c].accepted_correct, 0)}</td>)}
+                  </tr>
+                ))}
+                <tr className="border-t border-border/40"><td className="p-2">false accepts: unknown recordings</td>{fpSizes.map((n) => <td key={n} className="p-2 text-center">{pct(fp[n].false_accept.out_of_catalog_recording, 1)}</td>)}</tr>
+                <tr className="border-t border-border/40"><td className="p-2">false accepts: hummed queries</td>{fpSizes.map((n) => <td key={n} className="p-2 text-center">{pct(fp[n].false_accept.hummed_query, 1)}</td>)}</tr>
+                <tr className="border-t border-border/40"><td className="p-2">latency (mean / p95)</td>{fpSizes.map((n) => <td key={n} className="p-2 text-center">{fixed(fp[n].latency.mean_ms, 0)} / {fixed(fp[n].latency.p95_ms, 0)} ms</td>)}</tr>
+                <tr className="border-t border-border/40"><td className="p-2">index size</td>{fpSizes.map((n) => <td key={n} className="p-2 text-center">{fixed(fp[n].index.bytes / 1e6, 0)} MB · {fixed(fp[n].index.mb_per_audio_hour, 1)} MB/audio-hour</td>)}</tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 function ModelsTab() {
   const qc = useQueryClient();
   const models = useQuery({ queryKey: ["models"], queryFn: api.models });
@@ -488,11 +570,13 @@ export default function LabPage() {
       <Tabs defaultValue="bench">
         <TabsList>
           <TabsTrigger value="bench">Benchmarks</TabsTrigger>
+          <TabsTrigger value="scale">Scale</TabsTrigger>
           <TabsTrigger value="compare">Compare algorithms</TabsTrigger>
           <TabsTrigger value="train">Training</TabsTrigger>
           <TabsTrigger value="models">Models</TabsTrigger>
         </TabsList>
         <TabsContent value="bench" className="mt-5"><BenchmarksTab /></TabsContent>
+        <TabsContent value="scale" className="mt-5"><ScaleTab /></TabsContent>
         <TabsContent value="compare" className="mt-5"><CompareTab /></TabsContent>
         <TabsContent value="train" className="mt-5"><TrainingTab /></TabsContent>
         <TabsContent value="models" className="mt-5"><ModelsTab /></TabsContent>

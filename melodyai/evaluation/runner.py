@@ -563,6 +563,32 @@ def write_calibration(metrics: dict, path: Path) -> None:
     path.write_text(json.dumps(cal, indent=1))
 
 
+def catalog_and_ooc(cfg: dict):
+    melodies = generate_catalog(cfg["catalog_size"], 1000)
+    ooc_all, k = [], 0
+    while len(ooc_all) < max(1, cfg.get("out_of_catalog", 0)):
+        m = generate_melody(300_000 + k)
+        k += 1
+        if len(m.notes) >= 30:
+            ooc_all.append(m)
+    return melodies, ooc_all
+
+
+def load_query_set(cfg: dict, melodies, ooc_all, progress=None):
+    """Synthetic query set of a config (cached on disk by a hash of everything that defines it)."""
+    from melodyai.evaluation.datasets import build_query_set
+
+    seed = int(cfg.get("seed", 0))
+    qhash = hashlib.sha1(json.dumps([cfg["catalog_size"], cfg["conditions"], cfg.get("out_of_catalog"),
+                                     cfg.get("non_melodic"), seed, cfg.get("pitch_extractor"),
+                                     cfg.get("queries_per_song", 1), FEATURE_VERSION]).encode()).hexdigest()[:10]
+    queries = build_query_set(melodies, ooc_all, cfg["conditions"], cfg.get("out_of_catalog", 0),
+                              cfg.get("non_melodic", 0), seed, cfg.get("pitch_extractor", "pyin"),
+                              int(cfg.get("workers", 4)), experiments_dir() / "cache" / f"queries_{qhash}.pkl",
+                              cfg.get("queries_per_song", 1), progress)
+    return queries, qhash
+
+
 def run_evaluation(config_path, progress=None, should_stop=None, run_dir: Path | None = None) -> dict:
     cfg = yaml.safe_load(Path(config_path).read_text())
     seed = int(cfg.get("seed", 0))
@@ -583,23 +609,10 @@ def run_evaluation(config_path, progress=None, should_stop=None, run_dir: Path |
             raise RuntimeError("cancelled")
 
     p = P.stage("setup")
-    melodies = generate_catalog(cfg["catalog_size"], 1000)
-    ooc_all, k = [], 0
-    while len(ooc_all) < max(1, cfg.get("out_of_catalog", 0)):
-        m = generate_melody(300_000 + k)
-        k += 1
-        if len(m.notes) >= 30:
-            ooc_all.append(m)
+    melodies, ooc_all = catalog_and_ooc(cfg)
     index, index_stats = build_reference_index(melodies)
     p(1.0, "index built")
-    qhash = hashlib.sha1(json.dumps([cfg["catalog_size"], cfg["conditions"], cfg.get("out_of_catalog"),
-                                     cfg.get("non_melodic"), seed, cfg.get("pitch_extractor"),
-                                     cfg.get("queries_per_song", 1), FEATURE_VERSION]).encode()).hexdigest()[:10]
-    from melodyai.evaluation.datasets import build_query_set
-
-    queries = build_query_set(melodies, ooc_all, cfg["conditions"], cfg.get("out_of_catalog", 0),
-                              cfg.get("non_melodic", 0), seed, cfg.get("pitch_extractor", "pyin"), workers,
-                              cache_dir / f"queries_{qhash}.pkl", cfg.get("queries_per_song", 1), P.stage("queries"))
+    queries, qhash = load_query_set(cfg, melodies, ooc_all, P.stage("queries"))
     check_cancel()
     algs, notes = build_algorithms(cfg, index)
     all_algs = notes.pop("_all")

@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AudioWaveform, FlaskConical, Library, Mic, Moon, Settings2, Sun } from "lucide-react";
@@ -8,17 +8,20 @@ import { cn } from "@/lib/utils";
 import { Tip } from "@/components/ui/primitives";
 
 export function Logo() {
+  // Unique id per instance: a gradient defined inside a display:none copy (e.g. the hidden
+  // desktop sidebar on mobile) cannot be referenced by the visible copy.
+  const gid = `logo-${useId().replace(/:/g, "")}`;
   return (
     <div className="flex items-center gap-2.5">
       <svg viewBox="0 0 64 64" className="h-8 w-8" aria-hidden>
         <defs>
-          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="rgb(var(--accent))" />
             <stop offset="1" stopColor="rgb(var(--accent2))" />
           </linearGradient>
         </defs>
         <rect width="64" height="64" rx="16" className="fill-elevated" />
-        <path d="M10 38c6 0 6-14 12-14s6 22 12 22 6-30 12-30 6 22 8 22" fill="none" stroke="url(#lg)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M10 38c6 0 6-14 12-14s6 22 12 22 6-30 12-30 6 22 8 22" fill="none" stroke={`url(#${gid})`} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span className="text-[17px] font-semibold tracking-tight">
         Melody<span className="gradient-text">AI</span>

@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 class UserSettings(BaseModel):
     ui_language: str = Field("en", pattern="^(en|es)$")
     theme: str = Field("dark", pattern="^(dark|light|system)$")
-    default_mode: str = Field("auto", pattern="^(auto|hum|whistle|lyrics|combined)$")
+    default_mode: str = Field("auto", pattern="^(auto|clip|hum|whistle|lyrics|combined)$")
     melody_algorithm: str = "ensemble"
     pitch_extractor: str = "pyin"
     fusion_method: str = Field("weighted", pattern="^(weighted|rrf|combmnz)$")
@@ -26,6 +26,10 @@ class UserSettings(BaseModel):
     store_history: bool = True             # store recognition results (never raw audio by default)
     retention: str = Field("discard", pattern="^(discard|keep_with_consent)$")
     microphone_id: str | None = None       # remembered on the client, kept here for portability
+    # Licensed external catalog (e.g. ACRCloud). Off by default: enabling it sends a <=12 s copy of
+    # each recording to the provider.
+    external_provider_enabled: bool = False
+    provider_policy: str = Field("fallback", pattern="^(fallback|always)$")
 
 
 class SettingsStore:

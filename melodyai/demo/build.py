@@ -99,4 +99,5 @@ def import_demo(catalog, out: Path | None = None, progress=None) -> dict:
             skipped += 1
         if progress:
             progress((k + 1) / len(manifest["songs"]), s["title"])
+    catalog.flush_indexes()
     return {"added": added, "skipped": skipped, "total": len(manifest["songs"])}

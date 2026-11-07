@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Mic, MicOff, Music4, Pause, Play, Search, Square, Upload, Wind, Type, Sparkles, Layers, X } from "lucide-react";
+import { Mic, MicOff, Music4, Pause, Play, Radio, Search, ShieldAlert, Square, Upload, Wind, Type, Sparkles, Layers, X } from "lucide-react";
 import { useRecorder } from "@/hooks/useRecorder";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { api } from "@/services/api";
@@ -15,6 +15,7 @@ import { cn, formatTime } from "@/lib/utils";
 
 const MODE_ICONS: Record<Mode, JSX.Element> = {
   auto: <Sparkles className="h-4 w-4" />,
+  clip: <Radio className="h-4 w-4" />,
   hum: <Music4 className="h-4 w-4" />,
   whistle: <Wind className="h-4 w-4" />,
   lyrics: <Type className="h-4 w-4" />,
@@ -169,7 +170,7 @@ export default function RecognizePage() {
     abortRef.current?.abort();
   };
 
-  const modes: Mode[] = ["auto", "hum", "whistle", "lyrics", "combined"];
+  const modes: Mode[] = ["auto", "clip", "hum", "whistle", "lyrics", "combined"];
   return (
     <div className="space-y-8">
       <section
@@ -254,6 +255,12 @@ export default function RecognizePage() {
           </div>
         </div>
         <p className="mt-2 text-xs text-muted">{t("rec.drop")}</p>
+        {settings.external_provider_enabled && (
+          <p className="mx-auto mt-3 flex max-w-xl items-center justify-center gap-1.5 text-xs text-warn">
+            <ShieldAlert className="h-3.5 w-3.5" />
+            {settings.provider_policy === "always" ? "Every recording" : "Recordings not found locally"} are also sent (≤12 s) to the licensed catalog provider.
+          </p>
+        )}
         {settings.retention === "keep_with_consent" && (
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted">
             <input type="checkbox" checked={retain} onChange={(e) => setRetain(e.target.checked)} /> Keep this recording on this computer (consent)

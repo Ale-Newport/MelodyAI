@@ -148,3 +148,51 @@ member contributing its top-20 songs. `ensemble_neural` adds `neural_rerank`.
 2. Otherwise: profile detection (YIN median f0 over loud frames > 700 Hz → whistle), melody
    analysis; Whisper runs if enabled and the model is available locally.
 3. Both engines produced candidates → fusion; only one → that engine; none → `no_match`.
+
+## 9. Audio fingerprinting (`melodyai/fingerprint`, `clip` mode)
+
+For recordings of the actual track (a TikTok/Reels clip, a song playing nearby) rather than a
+person singing it.
+
+* **Peaks**: STFT (n_fft 4096, hop 512 = 32 ms at 16 kHz) → fixed sparse mapping onto a
+  log-frequency grid (24 bins/octave, 150 Hz–5 kHz, ~121 bins) → 9×9 local maxima within 45 dB of the
+  loudest bin → strongest 18 peaks per second, frequency refined by parabolic interpolation.
+* **Hashes** ("quads"): for each anchor, its 5 nearest later peaks within 1.5 s and ±15 semitones;
+  every ordered triple of them gives `(Δf₁, Δf₂, Δf₃, Δt₁, Δt₂, Δt₃)` packed into 32 bits (frequency
+  differences in 50-cent bins, time differences in 64 ms steps). No absolute frequency → invariant to
+  transposition. 10 hashes per anchor, ~146 postings per second of audio.
+* **Speed**: query peak times are rescaled by 22 factors between 0.75 and 1.40 (≈3% steps) before
+  hashing; resampling-style speed changes also transpose, which the invariance absorbs.
+* **Stage 1 vote**: each hit votes for (song, time offset in 64 ms bins, pitch offset in 50-cent bins)
+  with weight `log(1 + n_ref / postings(hash))` (IDF); a song's evidence is its best cell over all speeds.
+* **Stage 2 verification** (top 10 by evidence): query peaks are mapped into reference coordinates;
+  score = fraction landing within ±2 frames / ±1 bin of a reference peak, maximised over speed (±3% in
+  0.5% steps around the vote), offset (±4 frames) and pitch (±1 bin, with a +0.02 hysteresis in favour of
+  the vote). The transposition reported is the median frequency difference of matched peak pairs.
+* **Decision**: `match` if score ≥ 0.50 and margin ≥ 0.10 over the runner-up, `uncertain` ≥ 0.42
+  (defaults set from the synthetic benchmark; recalibrate on real data).
+* In **Auto** mode fingerprinting runs first (tens of ms); a `match` ends the search, otherwise the
+  melody/lyrics engines run as before. Hums must not match recordings: the false-accept rate of hummed
+  queries against the fingerprint index is part of the scale benchmark.
+
+## 10. Large-catalog melody search (`melodyai/matching/scalable.py`, `melodyai/indexing/ivfpq.py`)
+
+* **IVF-PQ** (pure NumPy, FAISS-compatible design): spherical k-means coarse quantiser (`nlist`
+  lists, capped at N/39); residuals split into `m` = 16 sub-vectors of 8 dims, each encoded with one of
+  256 k-means sub-centroids → 16 B per vector. Inner-product search decomposes exactly as
+  `q·c + Σⱼ qⱼ·codebookⱼ[codeⱼ]`, so one 16×256 lookup table serves all probed lists. Incremental
+  `add` goes to a delta scanned with the same scoring; `consolidate()` merges; `save/load` memory-maps.
+* **Stage 1**: query contour → encoder embedding → top 600 windows (nprobe 32) → per-song max → 50
+  candidate songs. Reference windows for this stage: lengths 9/13/18 notes with hops 3/5/7 (~75 per song).
+* **Stage 2**: window DTW and note alignment (sections 4.1 and 4.4) on the candidates only, features
+  loaded through an LRU cache; final score = mean of the two relative scores.
+
+## 11. Licensed provider (`melodyai/providers/acrcloud.py`)
+
+ACRCloud Identification API: `POST https://<host>/v1/identify`, multipart fields `sample`,
+`sample_bytes`, `access_key`, `data_type=audio`, `signature_version=1`, `timestamp`,
+`signature = base64(HMAC-SHA1(secret, "POST\n/v1/identify\n<key>\naudio\n1\n<timestamp>"))`.
+The loudest 12 s of the recording are sent as 8 kHz WAV; `metadata.music` (recordings, score 70–100)
+or `metadata.humming` (score 0–1) are parsed into title/artists/album/ISRC/links. Hosts must match
+`identify-*.acrcloud.(com|cn)`. Status 1001 = no result. Policy `fallback` (default) only calls the
+provider when the local decision is not `match`.

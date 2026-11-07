@@ -50,7 +50,7 @@ async def _recognize(state: AppState, mode: str, audio: UploadFile | None, text:
         try:
             res = await run_in_threadpool(
                 state.engine.recognize, decoded, text, mode, algorithm, language or us.asr_language,
-                top_k, pitch_extractor, fusion_method, True)
+                top_k, pitch_extractor, fusion_method, True, state.providers_enabled(), us.provider_policy)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
     res = _enrich(state, res)
@@ -92,8 +92,8 @@ def _form_endpoint(mode: str | None):
 
 
 router.add_api_route("/recognize", _form_endpoint(None), methods=["POST"],
-                     summary="Recognise a song (mode auto|hum|whistle|lyrics|combined)")
-for _m in ("hum", "whistle", "lyrics", "combined"):
+                     summary="Recognise a song (mode auto|clip|hum|whistle|lyrics|combined)")
+for _m in ("clip", "hum", "whistle", "lyrics", "combined"):
     router.add_api_route(f"/recognize/{_m}", _form_endpoint(_m), methods=["POST"], summary=f"Recognise ({_m} mode)")
 
 

@@ -29,7 +29,7 @@ def main() -> None:
     ap.add_argument("--mode", default="hum")
     args = ap.parse_args()
     cat = Catalog()
-    eng = RecognitionEngine(cat.melody_index, cat.lyrics_index, EngineSettings(asr_enabled=True))
+    eng = RecognitionEngine(cat.melody_index, cat.lyrics_index, EngineSettings(asr_enabled=True), fp_index=cat.fp_index)
     rows = list(csv.DictReader(args.labels.open()))
     out = {"n": len(rows), "algorithms": {}}
     for alg in args.algorithms.split(","):

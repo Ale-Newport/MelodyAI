@@ -1,0 +1,22 @@
+# Scale benchmark (synthetic): accuracy / latency / memory vs catalog size.
+# Run: make evaluate-scale   (~30-40 min on an Apple M-series laptop)
+name: scale
+seed: 2026
+workers: 8
+fingerprint:
+  enabled: true
+  sizes: [48, 500, 2000]          # indexed recordings (48 demo + distractors)
+  clip_seconds: 8
+  ooc: 48                          # clips of recordings that are not indexed
+  conditions: [none, speed_1.25, speed_1.1, speed_0.8, pitch_up_2, stretch_1.15, noise_5db, phone, reverb, overlay]
+melody:
+  enabled: true
+  sizes: [48, 1000, 10000, 100000] # songs (48 demo + distractor melodies)
+  query_config: configs/eval_default.yaml   # same synthetic queries as the main benchmark
+  checkpoint: models/melody_encoder.pt
+  n_candidates: 50
+  nlist: 2048
+  m: 16
+  nprobe: 32
+  exhaustive_max: 10000
+  exhaustive_queries: 96

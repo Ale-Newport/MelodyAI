@@ -74,6 +74,8 @@ def models(state: AppState = Depends(get_state)):
         "neural": {"active": state.neural, "error": state.neural_error,
                    "checkpoints": [{k: v for k, v in c.items() if k != "path"} for c in discover_checkpoints()]},
         "inference_device": torch_device(),
+        "providers": [p.describe() for p in state.providers],
+        "providers_enabled": state.providers_enabled(),
     }
 
 
@@ -119,6 +121,9 @@ def _run_summary(d) -> dict | None:
         m = json.loads((d / "metrics.json").read_text())
     except (OSError, ValueError):
         return None
+    if m.get("kind") == "scale":
+        return {"run_id": m["run_id"], "kind": "scale", "created_at": m.get("created_at"),
+                "elapsed_s": m.get("elapsed_s"), "dataset": m.get("dataset"), "algorithms": {}}
     mel = m.get("melody", {})
     return {"run_id": m["run_id"], "created_at": m.get("created_at"), "dataset": m.get("dataset"),
             "elapsed_s": m.get("elapsed_s"),
@@ -129,11 +134,11 @@ def _run_summary(d) -> dict | None:
 
 @router.get("/experiments", summary="Evaluation runs and training runs")
 def list_experiments():
-    runs = []
+    runs, scale = [], []
     for d in sorted((experiments_dir() / "runs").glob("*"), reverse=True):
         s = _run_summary(d)
         if s:
-            runs.append(s)
+            (scale if s.get("kind") == "scale" else runs).append(s)
     training = []
     for d in sorted((experiments_dir() / "training").glob("*"), reverse=True):
         try:
@@ -146,7 +151,7 @@ def list_experiments():
             hist = d / "history.json"
             training.append({"name": d.name, "status": "incomplete",
                              "history": json.loads(hist.read_text()) if hist.exists() else []})
-    return {"evaluations": runs, "training": training}
+    return {"evaluations": runs, "scale": scale, "training": training}
 
 
 def _run_dir(run_id: str):
@@ -287,5 +292,6 @@ def health(state: AppState = Depends(get_state)):
     return {"status": "ok", "version": __version__, "songs": st["songs"], "indexed": st["by_status"].get("indexed", 0),
             "with_lyrics": st["with_lyrics"], "asr_ready": state.engine.asr_ready(),
             "neural_model": (state.neural or {}).get("checkpoint"), "device": torch_device(),
+            "fingerprints": len(state.catalog.fp_index), "providers_enabled": state.providers_enabled(),
             "ffmpeg": ffmpeg_available(), "limits": {"max_upload_mb": state.settings.max_upload_mb,
                                                      "max_query_seconds": state.settings.max_query_seconds}}

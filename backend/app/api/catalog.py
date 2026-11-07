@@ -194,6 +194,7 @@ async def bulk_import(manifest: UploadFile = File(...), files: list[UploadFile] 
             results.append({"title": row["title"], "status": "duplicate", "id": e.existing_id})
         except ImportErrorMelody as e:
             results.append({"title": row["title"], "status": "error", "error": str(e)})
+    state.catalog.flush_indexes()
     return {"results": results}
 
 

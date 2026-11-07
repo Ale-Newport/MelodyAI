@@ -198,3 +198,117 @@ def build_report(run_dir: Path | None = None, out: Path | None = None) -> Path:
          m.get("notes", {}).get("neural_index_build_s") else "") + "\n")
     out.write_text("\n".join(L))
     return out
+
+
+def latest_scale_run() -> Path:
+    runs = sorted((experiments_dir() / "runs").glob("*-scale/metrics.json"))
+    if not runs:
+        raise FileNotFoundError("No scale runs found. Run `make evaluate-scale` first.")
+    return runs[-1].parent
+
+
+def build_scale_report(run_dir: Path | None = None, out: Path | None = None) -> Path:
+    """docs/SCALE_RESULTS.md from a scale run (all numbers read from its metrics.json)."""
+    run_dir = Path(run_dir or latest_scale_run())
+    m = json.loads((run_dir / "metrics.json").read_text())
+    out = Path(out or ROOT_DIR / "docs" / "SCALE_RESULTS.md")
+    env = m.get("env", {})
+    rel = run_dir.relative_to(ROOT_DIR) if ROOT_DIR in run_dir.parents else run_dir
+    L: list[str] = []
+    a = L.append
+    a("# Scale benchmark results\n")
+    a(f"> **Auto-generated** by `python -m melodyai.cli report-scale` from `{rel}/metrics.json` "
+      f"(run `{m['run_id']}`, {m['created_at']}, {env.get('machine')} · {env.get('cpu_count')} CPUs · "
+      f"{env.get('platform')}, wall time {round(m['elapsed_s'] / 60)} min). Do not edit by hand.\n")
+    a("> **Synthetic data.** The 48 demo songs are hidden among procedurally generated distractors rendered "
+      "with the same simple synthesisers. Real catalogs differ (richer timbres, vocals, but also covers, "
+      "remixes and near-duplicates). These tables measure how the *system* behaves as the index grows, not "
+      "real-world accuracy. See `docs/SCALING.md` for the architecture and extrapolations.\n")
+    fp = m.get("fingerprint")
+    if fp:
+        sizes = list(fp["sizes"])
+        a("## Recordings and TikTok-style clips (audio fingerprint)\n")
+        a(f"{fp['clip_seconds']:.0f}-second clips of the 48 indexed recordings. *top-1* = correct song ranked first; "
+          f"*accepted* = top-1 correct **and** score ≥ {fp['accept_threshold']} (the threshold that would answer "
+          "\"match\").\n")
+        a("| Edit | " + " | ".join(f"{int(n):,} recordings: top-1 / accepted" for n in sizes) + " |")
+        a("|---|" + "---|" * len(sizes))
+        conds = list(fp["sizes"][sizes[0]]["by_condition"])
+        for c in conds:
+            a(f"| {c.replace('_', ' ')} | " + " | ".join(
+                f"{_pct(fp['sizes'][n]['by_condition'][c]['top1'], 0)} / "
+                f"{_pct(fp['sizes'][n]['by_condition'][c]['accepted_correct'], 0)}" for n in sizes) + " |")
+        a("| **false accepts**: clips of unknown recordings | " + " | ".join(
+            _pct(fp["sizes"][n]["false_accept"]["out_of_catalog_recording"], 1) for n in sizes) + " |")
+        a("| **false accepts**: hummed queries | " + " | ".join(
+            _pct(fp["sizes"][n]["false_accept"]["hummed_query"], 1) for n in sizes) + " |")
+        a("| AUC correct vs negatives | " + " | ".join(_f(fp["sizes"][n]["auc_correct_vs_negatives"]) for n in sizes) + " |")
+        a("| latency mean / p95 | " + " | ".join(
+            f"{_f(fp['sizes'][n]['latency']['mean_ms'], 0)} / {_f(fp['sizes'][n]['latency']['p95_ms'], 0)} ms"
+            for n in sizes) + " |")
+        a("| index size | " + " | ".join(
+            f"{fp['sizes'][n]['index']['bytes'] / 1e6:.0f} MB ({fp['sizes'][n]['index']['audio_hours']} h audio)"
+            for n in sizes) + " |")
+        last = fp["sizes"][sizes[-1]]["index"]
+        a(f"\nStorage: **{last['mb_per_audio_hour']} MB per hour of audio** ({last['postings_per_second']} hash "
+          "postings/s × 16 B + peak maps × 10 B). Edits: speed = resampling (tempo *and* pitch change, as TikTok "
+          "\"sped up\"/\"slowed\"; slowed also adds reverb), pitch_up_2 = phase-vocoder pitch shift, stretch = "
+          "tempo-only time stretch, phone = 300–3400 Hz band-limit + saturation, overlay = another voice as loud "
+          "as the music.\n")
+    mel = m.get("melody")
+    if mel:
+        sizes = list(mel["sizes"])
+        a("## Humming / whistling vs catalog size (two-stage search)\n")
+        a(f"Stage 1: neural window embeddings in an IVF-PQ index ({mel['nlist']} lists, {mel['m']} bytes/vector, "
+          f"nprobe {mel['nprobe']}) → best {mel['n_candidates']} songs. Stage 2: window DTW + note alignment on "
+          f"those songs only. The same {mel['sizes'][sizes[0]]['two_stage']['n']} synthetic hum/whistle queries as the "
+          "main benchmark, plus its out-of-catalog/non-melodic queries for the AUC column.\n")
+        a("| Songs | Two-stage top-1 | top-5 | MRR | Stage-1 candidate recall | Neural ANN alone top-1 | "
+          "Exhaustive note-align top-1 (subset) | Latency stage 1 + 2 | Exhaustive latency | ANN index | AUC vs OOC |")
+        a("|---|---|---|---|---|---|---|---|---|---|---|")
+        for n in sizes:
+            e = mel["sizes"][n]
+            ex = e.get("exhaustive_note_align")
+            a(f"| {int(n):,} | {_pct(e['two_stage']['top1'])} | {_pct(e['two_stage']['top5'])} | "
+              f"{_f(e['two_stage']['mrr'])} | {_pct(e['candidate_recall'])} | {_pct(e['neural_ann_only']['top1'])} | "
+              f"{(_pct(ex['top1']) + ' (n=' + str(ex['n_queries']) + ')') if ex else '–'} | "
+              f"{_f(e['latency_stage1']['mean_ms'], 0)} + {_f(e['latency_stage2']['mean_ms'], 0)} ms | "
+              f"{(_f(ex['latency']['mean_ms'], 0) + ' ms') if ex else '–'} | "
+              f"{e['ann_vectors'] / 1e6:.2f} M vectors, {e['ann_index_mb']:.0f} MB | {_f(e['auc_correct_vs_ooc'])} |")
+        last = mel["sizes"][sizes[-1]]
+        if "candidate_recall_at" in last:
+            ks = list(last["candidate_recall_at"])
+            a("\nStage-1 candidate recall (is the right song among the first *k* songs retrieved by the ANN?) — the "
+              "ceiling for the two-stage top-1:\n")
+            a("| Songs | " + " | ".join(f"recall@{k}" for k in ks) + " |")
+            a("|---|" + "---|" * len(ks))
+            for n in sizes:
+                ra = mel["sizes"][n].get("candidate_recall_at", {})
+                a(f"| {int(n):,} | " + " | ".join(_pct(ra.get(k)) for k in ks) + " |")
+        a("\nTop-1 by condition at the largest size:\n")
+        a("| Condition | Top-1 | MRR |\n|---|---|---|")
+        for c, v in last["by_condition"].items():
+            a(f"| {c} | {_pct(v['top1'])} | {_f(v['mrr'])} |")
+        a("")
+    # Linear storage extrapolation from measured per-unit costs (no accuracy claim).
+    a("## Linear storage extrapolation (not measured)\n")
+    a("Index size grows linearly with the catalog; the per-unit costs below are *measured* in this run, the "
+      "totals are simple multiplications for a 250-million-track catalog (Spotify's reported order of magnitude, "
+      "average 3.5 min). Accuracy at that scale is **not** extrapolated: it depends on catalog content and was not "
+      "measured.\n")
+    a("| Index | Measured unit cost | 1 M tracks | 250 M tracks |\n|---|---|---|---|")
+    hours = lambda n: n * 3.5 / 60.0  # noqa: E731
+    if fp:
+        mbh = fp["sizes"][list(fp["sizes"])[-1]]["index"]["mb_per_audio_hour"]
+        a(f"| Fingerprint postings + peak maps | {mbh} MB / audio hour | {mbh * hours(1e6) / 1e3:,.0f} GB | "
+          f"{mbh * hours(250e6) / 1e6:,.1f} TB |")
+    if mel:
+        e = mel["sizes"][list(mel["sizes"])[-1]]
+        per_song = e["bytes_per_window"] * e["ann_vectors"] / int(list(mel["sizes"])[-1])
+        a(f"| Melody IVF-PQ (window embeddings) | {per_song / 1e3:.1f} kB / song "
+          f"({e['ann_vectors'] / int(list(mel['sizes'])[-1]):.0f} windows × {e['bytes_per_window']:.0f} B) | "
+          f"{per_song * 1e6 / 1e9:,.1f} GB | {per_song * 250e6 / 1e12:,.2f} TB |")
+    a("\nAt those sizes both indexes must be sharded across machines (they are append-only segment files, so "
+      "sharding by song id is straightforward); see `docs/SCALING.md`.\n")
+    out.write_text("\n".join(L))
+    return out

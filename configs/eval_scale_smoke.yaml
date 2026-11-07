@@ -1,0 +1,21 @@
+# Tiny scale run for tests/CI (minutes, not a meaningful result).
+name: scale-smoke
+seed: 7
+workers: 2
+fingerprint:
+  enabled: true
+  sizes: [48, 60]
+  clip_seconds: 8
+  ooc: 4
+  conditions: [none, speed_1.25]
+melody:
+  enabled: true
+  sizes: [48, 300]
+  query_config: configs/eval_quick.yaml
+  checkpoint: models/melody_encoder.pt
+  n_candidates: 20
+  nlist: 64
+  m: 16
+  nprobe: 16
+  exhaustive_max: 300
+  exhaustive_queries: 16

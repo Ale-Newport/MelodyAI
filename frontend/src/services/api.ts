@@ -9,6 +9,7 @@ import type {
   ModelsInfo,
   Mode,
   RecognitionResult,
+  ScaleMetrics,
   Song,
   TrainingRun,
   UserSettings,
@@ -114,7 +115,11 @@ export const api = {
     return request<AnalysisResult>("/api/audio/analyze", { method: "POST", body: fd });
   },
 
-  experiments: () => request<{ evaluations: EvalRunSummary[]; training: TrainingRun[] }>("/api/experiments"),
+  experiments: () =>
+    request<{ evaluations: EvalRunSummary[]; scale: { run_id: string; created_at: string; elapsed_s: number }[]; training: TrainingRun[] }>(
+      "/api/experiments",
+    ),
+  scaleRun: (id: string) => request<ScaleMetrics>(`/api/experiments/${encodeURIComponent(id)}`),
   experiment: (id: string) => request<EvalMetrics>(`/api/experiments/${encodeURIComponent(id)}`),
   experimentQueries: (id: string, params: { algorithm?: string; condition?: string; only_errors?: boolean }) => {
     const q = new URLSearchParams();

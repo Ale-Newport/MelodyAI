@@ -9,7 +9,7 @@ EXTRAS ?= ml,asr,pitch,dev
 MODEL ?= base
 
 .PHONY: help setup setup-min demo-data dev backend frontend test test-fast test-frontend evaluate evaluate-quick \
-        train train-smoke report lint format build asr-model clean
+        evaluate-scale train train-smoke report lint format build asr-model ingest clean
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -60,6 +60,13 @@ evaluate: ## Full reproducible benchmark (~25 min) -> experiments/runs/, configs
 
 evaluate-quick: ## Small benchmark (~2 min)
 	$(BIN)/python -m melodyai.cli evaluate --config configs/eval_quick.yaml
+
+evaluate-scale: ## Scale benchmark (~40 min): recordings/TikTok edits up to 2k tracks, humming up to 100k songs -> docs/SCALE_RESULTS.md
+	$(BIN)/python -m melodyai.cli evaluate-scale --config configs/eval_scale.yaml
+	$(BIN)/python -m melodyai.cli report-scale
+
+ingest: ## Parallel, resumable bulk import of a licensed collection: make ingest DIR=/path/to/music
+	$(BIN)/python -m melodyai.cli ingest "$(DIR)"
 
 report: ## Regenerate docs/RESULTS.md from the latest benchmark run
 	$(BIN)/python -m melodyai.cli report

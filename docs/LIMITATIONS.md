@@ -19,6 +19,19 @@ what is not done.
 * Neural encoder training on Apple Silicon (MPS) and inference from the exported checkpoint.
 
 ## Experimental
+* **Audio fingerprinting / `clip` mode**: verified on synthetic polyphonic recordings with TikTok-style
+  edits (docs/SCALE_RESULTS.md). Not tested on real produced music, where timbral diversity helps but
+  covers/remixes/near-duplicates hurt. A voice-over as loud as the music defeats it (6% accepted), heavy
+  reverb degrades it (71%), and at the default threshold 10.4% of clips of *unknown* synthetic recordings were
+  accepted as a match (AUC 0.97): recalibrate on real data before trusting "match". Search latency grows with
+  the index (52 ms at 0.6 h of audio, 383 ms at 38 h): sharding is required for large catalogs.
+* **Licensed provider (ACRCloud)**: implemented against the documented API and tested with a mocked HTTP
+  transport; **no live round trip was run** (no credentials). Its accuracy, costs and data handling are the
+  provider's.
+* **Two-stage IVF-PQ melody search**: measured up to 100,000 synthetic songs in a benchmark harness
+  (docs/SCALE_RESULTS.md): top-1 falls from 96% (48 songs) to 72% (100,000 songs), limited by the neural first
+  stage's recall. The web app's catalog still keeps all melody windows in memory for the
+  exhaustive matchers; wiring the two-stage search into the live catalog as its default is future work.
 
 * **Neural embeddings**: trained only on synthetic renditions of procedurally generated
   melodies. Validation is on unseen compositions of the *same generator style*.
@@ -32,6 +45,11 @@ what is not done.
 * **Docker image**: provided as an alternative; not built or run in the development environment.
 
 ## Not done / out of scope
+
+* **Indexing Spotify or TikTok audio**: prohibited by their terms (no audio access, no ML use, no
+  scraping). Commercial coverage is only available through a licensed provider (docs/SCALING.md).
+* **Distributed serving** (sharded fingerprint/ANN services, replication, ingestion queues): the storage
+  formats are shard-friendly, but everything runs in one process.
 
 * No evaluation on real human query datasets (MTG-QBH, MIR-QBSH, IOACAS, HumTrans). Licences and
   access require the user to obtain them; adapters are future work.

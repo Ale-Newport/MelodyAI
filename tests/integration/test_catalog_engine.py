@@ -37,7 +37,7 @@ def hum(m, rng, start_note=10, n_notes=14):
 
 
 def engine(cat):
-    return RecognitionEngine(cat.melody_index, cat.lyrics_index, EngineSettings(asr_enabled=False))
+    return RecognitionEngine(cat.melody_index, cat.lyrics_index, EngineSettings(asr_enabled=False), fp_index=cat.fp_index)
 
 
 def test_import_and_index(catalog):
@@ -131,3 +131,55 @@ def test_E_engine_abstains_on_noise(catalog, rng):
     y = (0.2 * rng.standard_normal(16000 * 5)).astype(np.float32)
     r = engine(catalog).recognize(Audio(y, 16000), mode="hum")
     assert r["status"] == "no_match" and r["message"].startswith("No sufficiently reliable")
+
+
+def test_clip_mode_identifies_recording_edits(tmp_path, songs):
+    """Audio references are fingerprinted at import; a sped-up clip of the recording is identified
+    in Clip and in Auto mode, with its speed and transposition; deletion removes it."""
+    import librosa
+
+    from melodyai.evaluation.datasets import render_polyphonic
+
+    cat = Catalog(tmp_path / "fpstore")
+    mixes = []
+    for i in range(4):
+        mix, _ = render_polyphonic(songs[i])
+        mixes.append(mix)
+        cat.add_song({"id": f"rec{i}", "title": f"Recording {i}", "reference_type": "polyphonic_audio"},
+                     wav_bytes(mix, 16000), f"rec{i}.wav")
+    cat.flush_indexes()
+    assert cat.status()["fingerprint_index"]["songs"] == 4
+    clip = librosa.resample(mixes[2][16000 * 10: 16000 * 20], orig_sr=16000 * 1.2, target_sr=16000)
+    eng = engine(cat)
+    for mode in ("clip", "auto"):
+        r = eng.recognize(Audio(clip.astype(np.float32), 16000), mode=mode)
+        assert r["resolved_mode"] == "clip" and r["status"] == "match", mode
+        fp = r["results"][0]["engines"]["fingerprint"]
+        assert r["results"][0]["song_id"] == "rec2" and abs(fp["speed"] - 1.2) < 0.04
+        assert abs(fp["pitch_semitones"] - 3.16) < 0.6
+    reopened = Catalog(tmp_path / "fpstore")  # persisted
+    assert reopened.stats["fingerprints_computed"] == 0 and len(reopened.fp_index) == 4
+    reopened.delete_song("rec2")
+    r = engine(reopened).recognize(Audio(clip.astype(np.float32), 16000), mode="clip")
+    assert all(x["song_id"] != "rec2" for x in r["results"])
+
+
+def test_parallel_ingest_is_resumable(tmp_path, songs, monkeypatch):
+    """`melodyai ingest` computes features in worker processes and skips already-imported files."""
+    from melodyai import cli
+    from melodyai.evaluation.datasets import render_polyphonic
+
+    music = tmp_path / "music"
+    music.mkdir()
+    for i in range(3):
+        (music / f"track{i}.wav").write_bytes(wav_bytes(render_polyphonic(songs[i])[0], 16000))
+    (music / "notes.txt").write_text("not audio")
+    monkeypatch.setenv("MELODYAI_STORE_DIR", str(tmp_path / "store"))
+    cli.main(["ingest", str(music), "--workers", "2", "--license", "own work"])
+    cat = Catalog(tmp_path / "store")
+    st = cat.status()
+    assert st["by_status"] == {"indexed": 3} and st["fingerprint_index"]["songs"] == 3
+    assert all(s["license"] == "own work" and s["reference_type"] == "polyphonic_audio" for s in cat.list_songs()[0])
+    (music / "track3.wav").write_bytes(wav_bytes(render_polyphonic(songs[3])[0], 16000))
+    cli.main(["ingest", str(music), "--workers", "2"])  # only the new file is processed
+    assert Catalog(tmp_path / "store").status()["songs"] == 4

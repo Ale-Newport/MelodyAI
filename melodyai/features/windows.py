@@ -36,7 +36,8 @@ class Windows:
         return len(self.start_note)
 
 
-def build_windows(notes: NoteSequence, lengths=DEFAULT_LENGTHS, n_points: int = N_POINTS) -> Windows:
+def build_windows(notes: NoteSequence, lengths=DEFAULT_LENGTHS, n_points: int = N_POINTS,
+                  hops: dict[int, int] | None = None) -> Windows:
     starts, ends, t0s, t1s, vecs, offs = [], [], [], [], [], []
     n = len(notes)
     ioi = notes.ioi()
@@ -44,7 +45,8 @@ def build_windows(notes: NoteSequence, lengths=DEFAULT_LENGTHS, n_points: int = 
         if n < 3:
             break
         L_eff = min(L, n)
-        for s in range(0, max(1, n - L_eff + 1), hop_for(L_eff)):
+        hop = (hops or {}).get(L, hop_for(L_eff))
+        for s in range(0, max(1, n - L_eff + 1), hop):
             e = s + L_eff
             sub = notes.slice(s, e)
             c = notes_to_contour(sub)

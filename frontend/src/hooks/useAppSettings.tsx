@@ -21,6 +21,8 @@ const DEFAULTS: UserSettings = {
   store_history: true,
   retention: "discard",
   microphone_id: null,
+  external_provider_enabled: false,
+  provider_policy: "fallback",
 };
 
 interface Ctx {

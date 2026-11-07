@@ -34,7 +34,11 @@ class AppState:
         root = Path(settings.store_dir) if settings.store_dir else store_dir()
         self.catalog = Catalog(root)
         self.user_settings = SettingsStore(root / "settings.json")
-        self.engine = RecognitionEngine(self.catalog.melody_index, self.catalog.lyrics_index, EngineSettings())
+        from melodyai.providers.acrcloud import default_providers
+
+        self.providers = default_providers()
+        self.engine = RecognitionEngine(self.catalog.melody_index, self.catalog.lyrics_index, EngineSettings(),
+                                        fp_index=self.catalog.fp_index, providers=self.providers)
         self.apply_user_settings()
         self.jobs = JobManager(self.catalog.Session)
         self.recognition_slots = asyncio.Semaphore(settings.max_concurrent_recognitions)
@@ -55,6 +59,9 @@ class AppState:
         s.asr_model = us.asr_model
         s.asr_allow_download = self.settings.allow_model_download
         s.top_k = us.top_k
+
+    def providers_enabled(self) -> bool:
+        return self.user_settings.get().external_provider_enabled and any(p.configured() for p in self.providers)
 
     def activate_neural(self, checkpoint_id: str) -> dict:
         from melodyai.matching.neural import attach_neural, detach_neural

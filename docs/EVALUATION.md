@@ -56,6 +56,25 @@ because people sing in their own range, not in the reference's.
   hardware, git commit), `metrics.json`, `per_query.jsonl` (every query × algorithm: target, returned
   song, rank, scores, latency), `figures/*.png`.
 
+## Scale benchmark (`make evaluate-scale`)
+
+`configs/eval_scale.yaml` → `experiments/runs/<UTC>-scale/` → `docs/SCALE_RESULTS.md`.
+
+* **Recordings / TikTok-style clips**: the 48 demo songs rendered as polyphonic recordings (melody +
+  pad + bass) are indexed among up to 2,000 distractor recordings (generator seeds 600000+). Queries are
+  8 s clips with 10 edits (none, sped up ×1.25/×1.1, slowed ×0.8 + reverb, +2 semitones, ×1.15 time-stretch,
+  5 dB noise, phone band-limit + saturation, reverb, voice-over), plus clips of 48 unindexed recordings and 48
+  hummed queries (both must be rejected). Metrics per index size: top-1, accepted-correct rate at the
+  acceptance threshold, false-accept rates, AUC, latency, MB per audio hour.
+* **Humming at scale**: the 48 demo songs hidden among up to 100,000 distractor melodies (seeds 500000+),
+  same synthetic queries as the main benchmark, two-stage search (IVF-PQ → DTW + note alignment) measured at
+  48 / 1k / 10k / 100k songs, against neural-ANN-only and exhaustive note alignment (≤ 10k songs, 96-query
+  subset). Metrics: top-1/5, MRR, stage-1 candidate recall, latencies per stage, index size, AUC vs
+  out-of-catalog queries.
+* Distractors come from the same generator and synthesisers as the demo songs, which makes them *more*
+  similar to each other than real songs are in timbre, while real catalogs have covers and remixes that
+  synthetic data lacks. Treat the curves as system behaviour, not real-world accuracy.
+
 ## What these numbers do *not* say
 
 * Synthetic renditions are cleaner and more regular than people. Ceiling effects on clean

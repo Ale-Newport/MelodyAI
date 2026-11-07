@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, ExternalLink, HelpCircle, Music2, Pause, Play, RotateCcw, Type, Waves } from "lucide-react";
-import type { RecognitionResult, ResultItem } from "@/types/api";
+import { AlertTriangle, CheckCircle2, ExternalLink, Globe2, HelpCircle, Music2, Pause, Play, Radio, RotateCcw, Type, Waves } from "lucide-react";
+import type { ProviderResult, RecognitionResult, ResultItem } from "@/types/api";
 import { api } from "@/services/api";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Badge, Button, Card, CardHeader, InfoTip, Stat } from "@/components/ui/primitives";
@@ -33,8 +33,14 @@ function MatchKind({ item }: { item: ResultItem }) {
   const { t } = useAppSettings();
   const m = !!item.engines.melody;
   const l = !!item.engines.lyrics;
+  const fp = item.engines.fingerprint;
   return (
     <span className="flex flex-wrap gap-1.5">
+      {fp && (
+        <Badge tone="ok">
+          <Radio className="h-3 w-3" /> {t("res.recording")} {fixed(fp.score, 2)}
+        </Badge>
+      )}
       {m && (
         <Badge tone="accent">
           <Waves className="h-3 w-3" /> {t("res.melody")} {fixed(item.engines.melody!.score, 2)}
@@ -78,6 +84,61 @@ function PlayButton({ item }: { item: ResultItem }) {
 
 const isDemo = (item: ResultItem) => (item.song.source ?? "").startsWith("MelodyAI procedural");
 
+function EditInfo({ speed, pitch }: { speed?: number; pitch?: number }) {
+  if (speed == null) return null;
+  const sped = Math.abs(speed - 1) >= 0.03;
+  const shifted = pitch != null && Math.abs(pitch) >= 0.4;
+  if (!sped && !shifted) return <p className="text-sm text-muted">Original speed and pitch.</p>;
+  return (
+    <p className="text-sm text-muted">
+      Your clip is{" "}
+      {sped && <span className="text-fg">{speed > 1 ? `${fixed(speed, 2)}× faster (sped up)` : `${fixed(1 / speed, 2)}× slower (slowed)`}</span>}
+      {sped && shifted && " and "}
+      {shifted && <span className="text-fg">{pitch! > 0 ? "+" : ""}{fixed(pitch, 1)} semitones</span>} relative to the original.
+    </p>
+  );
+}
+
+const LINK_LABELS: Record<string, string> = { spotify: "Spotify", youtube: "YouTube", deezer: "Deezer", musicbrainz: "MusicBrainz" };
+
+export function ExternalResults({ external, localStatus }: { external: ProviderResult[]; localStatus: string }) {
+  const { t } = useAppSettings();
+  if (!external?.length) return null;
+  return (
+    <Card className={cn(localStatus !== "match" && external.some((e) => e.status === "match") && "ring-1 ring-accent2/50")}>
+      <CardHeader icon={<Globe2 className="h-4 w-4" />} title={t("res.external")}
+        subtitle={t("res.externalNote", { p: external[0].provider, s: fixed(external[0].sent_seconds, 0) })} />
+      <div className="space-y-3 p-5">
+        {external.map((r, k) => (
+          <div key={k}>
+            <div className="label mb-2">{r.provider} · {r.kind === "humming" ? "humming search" : "recording fingerprint"} · {fixed(r.elapsed_s, 2)} s</div>
+            {r.status !== "match" && <p className="text-sm text-muted">{r.status === "no_result" ? "No result in the provider's catalog." : r.message}</p>}
+            <ol className="space-y-2">
+              {r.matches.slice(0, 5).map((m, i) => (
+                <li key={i} className="flex flex-wrap items-center gap-3 rounded-xl border border-border/50 px-3 py-2">
+                  <Artwork id={`${m.title}${m.artists.join()}`} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{m.title}</div>
+                    <div className="truncate text-xs text-muted">{m.artists.join(", ")}{m.album ? ` · ${m.album}` : ""}{m.release_date ? ` · ${m.release_date.slice(0, 4)}` : ""}</div>
+                  </div>
+                  <span className="text-xs text-muted" title={m.score_kind}>{m.score_kind.includes("70-100") ? fixed(m.score, 0) : fixed(m.score, 2)}</span>
+                  <span className="flex gap-1">
+                    {Object.entries(m.links).map(([k, url]) => (
+                      <a key={k} href={url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-accent hover:bg-elevated">
+                        {LINK_LABELS[k] ?? k} <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export function ResultsView({ result, onAgain }: { result: RecognitionResult; onAgain?: () => void }) {
   const { t } = useAppSettings();
   const top = result.results[0];
@@ -103,7 +164,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
             {d.confidence && <Badge tone={statusUi.tone}>{d.confidence} confidence</Badge>}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted">
-            <span>{result.resolved_mode} · {mel?.algorithm ?? "lyrics"} · {fixed(result.elapsed_s, 2)} s</span>
+            <span>{result.resolved_mode} · {result.resolved_mode === "clip" ? "fingerprint" : mel?.algorithm ?? "lyrics"} · {fixed(result.elapsed_s, 2)} s</span>
             {onAgain && (
               <Button size="sm" variant="ghost" onClick={onAgain}>
                 <RotateCcw className="h-3.5 w-3.5" /> {t("res.again")}
@@ -124,6 +185,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
                   {top.song.year ? ` · ${top.song.year}` : ""}
                 </p>
                 <MatchKind item={top} />
+                {top.engines.fingerprint && <EditInfo speed={top.engines.fingerprint.speed} pitch={top.engines.fingerprint.pitch_semitones} />}
                 {top.match_start != null && top.match_end != null && (
                   <p className="text-sm text-muted">
                     {t("res.matchedAt")}: <span className="font-mono text-fg">{formatTime(top.match_start)}–{formatTime(top.match_end)}</span>
@@ -186,6 +248,8 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
           <div className="border-t border-border/60 px-5 py-3 text-xs text-warn">{result.warnings.join(" ")}</div>
         )}
       </Card>
+
+      {result.external && <ExternalResults external={result.external} localStatus={status} />}
 
       {result.results.length > (showTop ? 1 : 0) && (
         <Card>

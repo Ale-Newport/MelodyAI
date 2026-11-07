@@ -50,3 +50,36 @@ describe("ResultsView", () => {
     expect(screen.queryByText("YouTube Music")).not.toBeInTheDocument(); // demo songs: no external search
   });
 });
+
+describe("Recording (clip) and licensed-provider results", () => {
+  it("explains speed/pitch edits and shows provider matches with links", () => {
+    const r: RecognitionResult = {
+      ...base, mode: "clip", resolved_mode: "clip", status: "no_match",
+      decision: { status: "no_match" },
+      results: [],
+      external: [{
+        provider: "acrcloud", kind: "music", status: "match", message: "", elapsed_s: 0.8, sent_seconds: 12,
+        matches: [{ title: "Hello", artists: ["Adele"], album: "25", release_date: "2015-10-23", score: 100,
+          score_kind: "match confidence 70-100 (provider)", play_offset_s: 9, duration_s: 295, isrc: null,
+          links: { spotify: "https://open.spotify.com/track/x" } }],
+      }],
+    };
+    wrap(<ResultsView result={r} />);
+    expect(screen.getByText("Found in a licensed catalog")).toBeInTheDocument();
+    expect(screen.getByText("Hello")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Spotify/ })).toHaveAttribute("href", "https://open.spotify.com/track/x");
+  });
+
+  it("describes a sped-up clip", () => {
+    const r: RecognitionResult = {
+      ...base, mode: "clip", resolved_mode: "clip", status: "match",
+      decision: { status: "match", confidence: "high", top_score: 0.9, margin: 0.5 },
+      results: [{ rank: 1, song_id: "a", score: 0.9, song: { id: "a", title: "Paper Boats", artist: "E", has_audio: false },
+        engines: { fingerprint: { rank: 1, score: 0.9, speed: 1.25, pitch_semitones: 3.9, start_time: 10, end_time: 20 } },
+        match_start: 10, match_end: 20 }],
+    };
+    wrap(<ResultsView result={r} />);
+    expect(screen.getByText(/1.25× faster/)).toBeInTheDocument();
+    expect(screen.getByText(/\+3.9 semitones/)).toBeInTheDocument();
+  });
+});

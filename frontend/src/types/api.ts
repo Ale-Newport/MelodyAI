@@ -1,4 +1,4 @@
-export type Mode = "auto" | "hum" | "whistle" | "lyrics" | "combined";
+export type Mode = "auto" | "clip" | "hum" | "whistle" | "lyrics" | "combined";
 export type Status = "match" | "uncertain" | "no_match";
 
 export interface SongSummary {
@@ -41,6 +41,9 @@ export interface EngineResultRef {
   end_time?: number | null;
   matched_text?: string;
   line_range?: [number, number];
+  evidence?: number;
+  speed?: number;
+  pitch_semitones?: number;
 }
 
 export interface ResultItem {
@@ -48,7 +51,7 @@ export interface ResultItem {
   song_id: string;
   score: number;
   song: SongSummary;
-  engines: { melody?: EngineResultRef; lyrics?: EngineResultRef };
+  engines: { melody?: EngineResultRef; lyrics?: EngineResultRef; fingerprint?: EngineResultRef };
   match_start?: number | null;
   match_end?: number | null;
 }
@@ -105,8 +108,32 @@ export interface Transcript {
   elapsed_s: number;
 }
 
+export interface ProviderMatch {
+  title: string;
+  artists: string[];
+  album: string | null;
+  release_date: string | null;
+  score: number;
+  score_kind: string;
+  play_offset_s: number | null;
+  duration_s: number | null;
+  isrc: string | null;
+  links: Record<string, string>;
+}
+
+export interface ProviderResult {
+  provider: string;
+  kind: "music" | "humming";
+  status: "match" | "no_result" | "error" | "disabled";
+  matches: ProviderMatch[];
+  message: string;
+  elapsed_s: number;
+  sent_seconds: number;
+}
+
 export interface RecognitionResult {
   id?: string;
+  external?: ProviderResult[];
   mode: Mode;
   resolved_mode: string;
   status: Status;
@@ -126,6 +153,7 @@ export interface RecognitionResult {
     contour_rate_hz: number;
   };
   engines: {
+    fingerprint?: { status: string; elapsed_s: number; candidates: { song_id: string; score: number; evidence: number }[] };
     melody?: {
       algorithm: string;
       status: string;
@@ -170,6 +198,8 @@ export interface Health {
   neural_model: string | null;
   device: string;
   ffmpeg: boolean;
+  fingerprints?: number;
+  providers_enabled?: boolean;
   limits: { max_upload_mb: number; max_query_seconds: number };
 }
 
@@ -191,6 +221,8 @@ export interface ModelsInfo {
     checkpoints: { id: string; source: string }[];
   };
   inference_device: string;
+  providers: { name: string; label: string; configured: boolean; music: boolean; humming: boolean; host: string | null; invalid_host: boolean; max_seconds_sent: number }[];
+  providers_enabled: boolean;
 }
 
 export interface UserSettings {
@@ -210,6 +242,8 @@ export interface UserSettings {
   store_history: boolean;
   retention: "discard" | "keep_with_consent";
   microphone_id: string | null;
+  external_provider_enabled: boolean;
+  provider_policy: "fallback" | "always";
 }
 
 export interface Job {
@@ -233,6 +267,7 @@ export interface CatalogStatus {
   feature_version: string;
   melody_index: { songs: number; windows: number; window_lengths: number[]; version: number };
   lyrics_index: { songs: number };
+  fingerprint_index?: { songs: number; postings: number; segments: number; bytes: number; version: string };
   neural_index: unknown;
   stats: Record<string, number>;
 }
@@ -333,4 +368,43 @@ export interface AnalysisResult {
   informative: boolean;
   matched?: { song_id: string; score: number; start_time: number; end_time: number };
   comparison?: { song_id: string; song?: Song; alignment: Alignment | null; reference_notes: NotesData };
+}
+
+export interface ScaleMetrics {
+  run_id: string;
+  kind: "scale";
+  created_at: string;
+  elapsed_s: number;
+  env: Record<string, any>;
+  fingerprint?: {
+    clip_seconds: number;
+    accept_threshold: number;
+    sizes: Record<string, {
+      overall: RetrievalMetrics;
+      by_condition: Record<string, RetrievalMetrics & { accepted_correct: number }>;
+      false_accept: Record<string, number>;
+      auc_correct_vs_negatives: number | null;
+      latency: { mean_ms: number; p50_ms: number; p95_ms: number };
+      index: { songs: number; postings: number; bytes: number; audio_hours: number; mb_per_audio_hour: number; postings_per_second: number };
+    }>;
+  };
+  melody?: {
+    n_candidates: number;
+    nlist: number;
+    m: number;
+    nprobe: number;
+    sizes: Record<string, {
+      two_stage: RetrievalMetrics;
+      neural_ann_only: RetrievalMetrics;
+      candidate_recall: number;
+      candidate_recall_at?: Record<string, number>;
+      latency_stage1: { mean_ms: number; p95_ms: number };
+      latency_stage2: { mean_ms: number; p95_ms: number };
+      auc_correct_vs_ooc: number | null;
+      ann_vectors: number;
+      ann_index_mb: number;
+      bytes_per_window: number;
+      exhaustive_note_align?: RetrievalMetrics & { latency: { mean_ms: number; p95_ms: number }; n_queries: number };
+    }>;
+  };
 }

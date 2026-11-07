@@ -270,11 +270,12 @@ export default function LibraryPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         <Stat label="Songs" value={st.data?.songs ?? "–"} />
         <Stat label="Indexed" value={st.data?.by_status.indexed ?? 0} />
         <Stat label="With lyrics" value={st.data?.with_lyrics ?? "–"} />
         <Stat label="Melody windows" value={st.data?.melody_index.windows.toLocaleString() ?? "–"} hint={`Overlapping windows of ${st.data?.melody_index.window_lengths.join(", ")} notes`} />
+        <Stat label="Fingerprinted" value={st.data?.fingerprint_index?.songs ?? "–"} hint={`Recordings in the audio-fingerprint index (${((st.data?.fingerprint_index?.bytes ?? 0) / 1e6).toFixed(1)} MB). MIDI songs are fingerprinted through their audio preview.`} />
         <Stat label="Features" value={st.data?.feature_version ?? "–"} hint="Feature-extraction version; songs from older versions are marked stale" />
       </div>
 
