@@ -11,6 +11,7 @@ htmlcov/
 # Node
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 
 # Local data (regenerable or private)
 data/store/
