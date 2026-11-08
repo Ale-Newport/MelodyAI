@@ -58,10 +58,11 @@ what is not done.
 * **Indexing Spotify or TikTok audio**: prohibited by their terms (no audio access, no ML use, no
   scraping). Commercial coverage *by audio* is only available through a licensed provider
   (docs/SCALING.md); commercial songs with words are recognised by their lyrics (OPEN_WORLD.md).
-* **Humming / whistling real songs without words**: the open-world search is lyrics-only. It would need
-  melodic references of real songs: melody datasets such as Lakh MIDI were deliberately not downloaded,
-  and melody extraction from produced mixes is not solved. The licensed provider's humming database
-  (ACRCloud) is the keyed option.
+* **Humming / whistling real songs without words** works only for the ~25,000 songs of the Lakh MIDI
+  index (`make lakh`, [LAKH.md](LAKH.md)): mostly English pop/rock before ~2011, and with modest accuracy
+  (synthetic hums: 35 % top-1, 55 % top-5; mostly "possible songs" rather than confident matches). Recent
+  hits, TikTok trends and Latin music need their words. The licensed provider's humming database (ACRCloud)
+  is the keyed option for wide coverage.
 * **Instrumental TikTok / trend audio**: no words to search. It is recognised only if the track is in the
   local fingerprint index (imported by you) or through the licensed provider.
 * **Distributed serving** (sharded fingerprint/ANN services, replication, ingestion queues): the storage

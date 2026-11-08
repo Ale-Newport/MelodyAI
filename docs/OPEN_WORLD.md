@@ -7,8 +7,9 @@ when online search is on, through two free services (LRCLIB and Deezer). Every c
 against its real lyrics before it is shown. Measured numbers are in [WORLD_RESULTS.md](WORLD_RESULTS.md),
 which `make evaluate-world` generates. This page explains the design, the privacy rules and the limits.
 
-> **Scope in one sentence.** Real songs are recognised by their *lyrics*. Humming or whistling a real
-> song without words, or an instrumental clip, cannot be identified this way (see [Limitations](#11-limitations)).
+> **Scope in one sentence.** Real songs are recognised by their *lyrics*. Humming or whistling without words
+> is matched only against the ~25,000 songs of the optional Lakh MIDI melody index ([LAKH.md](LAKH.md)), and an
+> instrumental clip cannot be identified this way (see [Limitations](#11-limitations)).
 
 ## 1. Why
 
@@ -20,7 +21,7 @@ melodies. The options for real songs were:
 |---|---|
 | Index Spotify / TikTok / YouTube audio | Not allowed by their terms ([SCALING.md](SCALING.md#1-constraints-that-are-not-technical)); no scraping and no unofficial APIs are used |
 | Licensed recognition provider (ACRCloud: recordings and humming) | Implemented as an optional adapter; needs your own credentials ([SCALING.md](SCALING.md#3-path-a--licensed-provider-acrcloud)) |
-| Melodic references of real songs (e.g. Lakh MIDI, MIR-QBSH) | Deliberately not downloaded for this project ([DATASETS.md](DATASETS.md#symbolic-melody-sources)) |
+| Melodic references of real songs | Lakh MIDI (CC-BY 4.0, ~25,000 songs) as an optional humming index: `make lakh`, [LAKH.md](LAKH.md) |
 | **Recognise the words** | **Implemented here.** People singing from memory sing words, and the lyrics of popular songs are available from free services without a key |
 
 ## 2. Pipeline
@@ -307,11 +308,12 @@ single line, misremembered), synthesised speech and a synthetic "sung" version t
 
 ## 11. Limitations
 
-* **Humming and whistling without words cannot identify real songs.** The open world is lyrics-only.
-  Recognising a hummed melody needs melodic references of the real songs. Melody datasets such as Lakh
-  MIDI were deliberately not downloaded, and extracting melodies from commercial audio is not allowed
-  (Spotify/TikTok terms) and not solved ([SCALING.md](SCALING.md#5-what-remains-hard-and-is-not-solved-here)).
-  The keyed option is the licensed provider: ACRCloud's humming database and recording fingerprints.
+* **Humming and whistling without words reach only the Lakh MIDI songs.** The lyrics search needs words; the
+  optional melody index ([LAKH.md](LAKH.md)) covers ~25,000 mostly older English-language songs with modest
+  accuracy (synthetic hums: 35 % top-1, 55 % top-5, mostly shown as "possible songs"). Extracting melodies
+  from commercial audio is not allowed (Spotify/TikTok terms) and not solved
+  ([SCALING.md](SCALING.md#5-what-remains-hard-and-is-not-solved-here)). The keyed option for wide coverage is
+  the licensed provider: ACRCloud's humming database and recording fingerprints.
 * **TikTok clips are recognised through their sung words.** Whisper over music is weaker than over a
   voice alone, and the evaluation so far used synthetic speech without backing music. Trend audio that
   is instrumental, or only sped-up music without clear vocals, has no words to search. It needs audio

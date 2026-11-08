@@ -10,7 +10,7 @@ MODEL ?= large-v3-turbo
 PRESET ?= quick
 
 .PHONY: help setup setup-min demo-data dev backend frontend test test-fast test-frontend evaluate evaluate-quick \
-        evaluate-scale evaluate-world train train-smoke report lint format build asr-model ingest world-sync \
+        evaluate-scale evaluate-world train train-smoke report lint format build asr-model ingest world-sync lakh \
         clean
 
 help:
@@ -84,6 +84,10 @@ train-smoke: ## Tiny training run (seconds) to check the pipeline
 
 asr-model: ## Download a faster-whisper model (MODEL=large-v3-turbo|large-v3|medium|small|base|tiny; ~1.6 GB for turbo)
 	$(BIN)/python -m melodyai.cli asr-model --model $(MODEL)
+
+lakh: ## Download Lakh MIDI (~1.5 GB, CC-BY 4.0) and build the humming index of ~26k real songs (~1 h)
+	$(BIN)/python -m melodyai.cli lakh-download
+	$(BIN)/python -m melodyai.cli lakh-build $(if $(LIMIT),--limit $(LIMIT))
 
 world-sync: ## Add popular songs' lyrics to the open-world index (PRESET=quick|standard|large, LIMIT=N; resumable)
 	$(BIN)/python -m melodyai.cli world-sync --preset $(PRESET) $(if $(LIMIT),--limit $(LIMIT))

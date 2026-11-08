@@ -22,6 +22,13 @@ b. else a world ``match`` wins;
 c. else a local melody-only ``match`` wins;
 d. else (both uncertain / no match) the world list wins when its decision is at least as good as the local
    one and its top score is at least the local top score.
+
+Open-world melodies (optional, :class:`melodyai.world.melodies.WorldMelodyIndex`, built from Lakh MIDI): a
+hummed or whistled query has no words, so its melody is also searched among the vocal lines of real songs.
+The result is reported as ``engines.world_melody`` (decision kind ``"world_melody"``) and is considered after
+the answers above, by :meth:`RecognitionEngine.prefer_world_melody`: only when neither a local match nor a
+world lyrics match exists, it wins as ``resolved_mode = "melody_online"`` with a ``match``, or with an
+``uncertain`` decision when the answer so far is no better.
 """
 
 from __future__ import annotations
@@ -53,6 +60,7 @@ STATUS_RANK = {"no_match": 0, "uncertain": 1, "match": 2}
 WORLD_TOP_K = 5              # world candidates requested (at least): the decision needs a runner-up for its margin
 WORLD_JOIN_GRACE_S = 5.0     # wait beyond WorldSearch.deadline_s (metadata enrichment, learning) before giving up
 WORLD_SONG_SOURCE = "LRCLIB + Deezer"
+WORLD_MELODY_SOURCE = "Lakh MIDI (CC-BY 4.0)"
 
 
 @dataclass
@@ -123,6 +131,16 @@ def world_song(c: dict) -> dict:
             "deezer_id": c.get("deezer_id"), "has_audio": False, "links": dict(c.get("links") or {})}
 
 
+def world_melody_item(rank: int, c: dict) -> dict:
+    """A ``results`` entry for an open-world melody candidate (``rank`` is 1-based)."""
+    song = world_song(c)
+    song["source"] = WORLD_MELODY_SOURCE
+    return {"rank": rank, "song_id": c["song_id"], "score": round(float(c["score"]), 4), "song": song,
+            "match_start": c.get("start_time"), "match_end": c.get("end_time"),
+            "engines": {"world_melody": {"rank": rank, "score": c["score"], "start_time": c.get("start_time"),
+                                         "end_time": c.get("end_time"), "source": WORLD_MELODY_SOURCE}}}
+
+
 def world_result_item(rank: int, c: dict) -> dict:
     """A ``results`` entry for a world candidate (``rank`` is 1-based)."""
     return {"rank": rank, "song_id": c["song_id"], "score": round(float(c["score"]), 4), "song": world_song(c),
@@ -173,8 +191,10 @@ class WorldTask:
 class RecognitionEngine:
     def __init__(self, melody_index: MelodyIndex, lyrics_index: LyricsIndex,
                  settings: EngineSettings | None = None, fp_index=None, providers: list | None = None,
-                 world=None) -> None:
+                 world=None, world_melody=None) -> None:
         self.melody_index = melody_index
+        # melodyai.world.melodies.WorldMelodyIndex (optional): hummed melodies of real songs (Lakh MIDI)
+        self.world_melody = world_melody
         self.providers = providers or []  # melodyai.providers (licensed external catalogs)
         self.lyrics_index = lyrics_index
         self.fp_index = fp_index  # melodyai.fingerprint.index.FingerprintIndex (optional)
@@ -262,6 +282,43 @@ class RecognitionEngine:
             return False                                                      # (c) melody-only local match
         local_top = float(ranked[0]["score"]) if ranked else 0.0              # (d)
         return STATUS_RANK.get(remote, 0) >= STATUS_RANK.get(local, 0) and float(candidates[0]["score"]) >= local_top
+
+    def run_world_melody(self, q: QueryFeatures, top_k: int) -> dict | None:
+        """Search the hummed melody among real songs' vocal lines (None when no index is configured / built)."""
+        wm = self.world_melody
+        if wm is None or not getattr(wm, "built", False):
+            return None
+        t0 = time.perf_counter()
+        if not q.informative:
+            res = {"status": "insufficient_melody", "candidates": []}
+        else:
+            try:
+                res = {"status": "ok", "candidates": [m.to_dict() for m in wm.search(q, max(top_k, WORLD_TOP_K))]}
+            except Exception as e:  # noqa: BLE001 - must never break recognition
+                log.exception("world melody search failed")
+                res = {"status": "error", "candidates": [], "message": f"{type(e).__name__}: {e}"[:300]}
+            if res["status"] == "ok" and getattr(wm, "error", ""):
+                res = {"status": "error", "candidates": [], "message": wm.error}
+        cands = res["candidates"]
+        res["decision"] = decide([{"song_id": c["song_id"], "score": c["score"]} for c in cands], "world_melody",
+                                 None, self.calibration)
+        res["elapsed_s"] = round(time.perf_counter() - t0, 3)
+        res["source"] = WORLD_MELODY_SOURCE
+        return res
+
+    def prefer_world_melody(self, resolved: str, decision: dict, ranked: list[dict], world_melody: dict) -> bool:
+        """Open-world melodies answer only when nothing better did (see the module docstring)."""
+        cands = world_melody.get("candidates") or []
+        if not cands:
+            return False
+        local, remote = decision["status"], world_melody["decision"]["status"]
+        if local == "match" or remote == "no_match":
+            return False
+        if remote == "match":
+            return True
+        top = float(ranked[0]["score"]) if ranked and resolved != "lyrics_online" else 0.0
+        return local == "no_match" or (resolved not in ("lyrics_online", "lyrics", "combined", "clip")
+                                       and float(cands[0]["score"]) >= top)
 
     # -------------------------------------------------------------- main API
     def recognize(self, audio: Audio | None = None, text: str | None = None, mode: str = "auto",
@@ -352,6 +409,9 @@ class RecognitionEngine:
                               with_chroma=(algorithm or self.settings.melody_algorithm) == "chroma_dtw")
             mel = self.run_melody(q, algorithm, top_k)
             mel["profile"] = profile
+            world_mel = self.run_world_melody(q, top_k)
+            if world_mel is not None:
+                out["engines"]["world_melody"] = world_mel
             mel["timings"] = {k: round(v, 4) for k, v in q.timings.items()}
             out["engines"]["melody"] = mel
             out["query"] = {
@@ -435,6 +495,13 @@ class RecognitionEngine:
                 decision = dict(world["decision"])
                 results = [world_result_item(i + 1, c) for i, c in enumerate(world["candidates"][:top_k])]
                 out.pop("fusion", None)
+
+        world_mel = out["engines"].get("world_melody")
+        if world_mel and self.prefer_world_melody(resolved, decision, ranked, world_mel):
+            resolved = "melody_online"
+            decision = dict(world_mel["decision"])
+            results = [world_melody_item(i + 1, c) for i, c in enumerate(world_mel["candidates"][:top_k])]
+            out.pop("fusion", None)
 
         out["resolved_mode"] = resolved
         out["decision"] = decision

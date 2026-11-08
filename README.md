@@ -22,7 +22,8 @@ encoder, a fuzzy lyrics engine with optional local speech recognition, calibrate
 > and MelodyAI makes no claim of matching Google's precision, scale or catalog size. **Real songs** are recognised only by
 > their *words* (Whisper transcript or typed text), through a local index of popular songs' lyrics and the free LRCLIB / Deezer
 > services ([docs/OPEN_WORLD.md](docs/OPEN_WORLD.md)), with a separate real-song evaluation on 100 songs
-> ([docs/WORLD_RESULTS.md](docs/WORLD_RESULTS.md)). Humming or whistling a real song without words is not recognised. See
+> ([docs/WORLD_RESULTS.md](docs/WORLD_RESULTS.md)). Humming or whistling a real song without words is matched against the
+> ~25,000 songs of the optional Lakh MIDI melody index ([docs/LAKH.md](docs/LAKH.md)), with modest accuracy. See
 > [Limitations](#limitations).
 
 ## Quick start
@@ -41,6 +42,7 @@ in the middle works too. No GPU, Docker, database server or API key is needed.
 ```bash
 make asr-model MODEL=large-v3-turbo   # Whisper for sung lyrics (~1.6 GB; the "auto" setting picks it up)
 make world-sync PRESET=quick          # lyrics of popular songs into a local index (est. ~1,900 songs, ~half an hour)
+make lakh                             # optional: hummable melodies of ~25,000 real songs (Lakh MIDI, ~1.5 GB, ~1 h)
 ```
 
 Then sing (or type) a line you remember. **Online song search** is on by default: the transcribed or typed words, never audio,
@@ -202,9 +204,9 @@ vibrato); real human singing has not been evaluated. Full tables: **[docs/WORLD_
   lyrics. `scripts/evaluate_recordings.py` evaluates your own labelled, consented recordings.
 * **Catalog size.** Measured up to 100,000 synthetic songs (hum) and 2,000 synthetic recordings (clips); hum accuracy degrades
   with catalog size (see Results). Nothing was measured on real commercial catalogs.
-* **Real songs only by their words.** The open-world search needs lyrics: humming or whistling a real song, and instrumental
-  clips, are not recognised. That would need melodic references (Lakh MIDI was deliberately not downloaded) or the licensed
-  provider. Coverage is the local index plus what LRCLIB / Deezer know. The first lookup of a song that is not indexed needs
+* **Real songs mostly by their words.** Humming or whistling a real song is matched only against the ~25,000 Lakh MIDI songs
+  (mostly English pop/rock before ~2011; synthetic hums 35% top-1, 55% top-5), and instrumental clips are not recognised
+  without the licensed provider. Coverage is the local index plus what LRCLIB / Deezer know. The first lookup of a song that is not indexed needs
   the internet. A cover may be shown instead of the original. The `world` thresholds stay provisional until they are
   calibrated on the full index ([details](docs/OPEN_WORLD.md#11-limitations)).
 * **Polyphonic recordings.** Matching against produced commercial mixes is *not* solved here: the experimental Basic Pitch + skyline
@@ -242,6 +244,7 @@ Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 | [SCALING](docs/SCALING.md) | Spotify/TikTok constraints, licensed provider setup, large-catalog architecture |
 | [SCALE_RESULTS](docs/SCALE_RESULTS.md) | auto-generated scale benchmark (48 → 100,000 songs; TikTok-style edits) |
 | [OPEN_WORLD](docs/OPEN_WORLD.md) | real songs by their words: pipeline, sources, what leaves the machine, popular-songs sync, settings, limits |
+| [LAKH](docs/LAKH.md) | humming real songs: Lakh MIDI melody index, vocal-track selection, encoder, accuracy, attribution |
 | [WORLD_RESULTS](docs/WORLD_RESULTS.md) | auto-generated real-song (open-world) evaluation |
 | [API](docs/API.md) | REST endpoints (OpenAPI at `/docs`) |
 | [LIMITATIONS](docs/LIMITATIONS.md) | what is verified, experimental, missing |
@@ -253,7 +256,9 @@ Built on [librosa](https://github.com/librosa/librosa) (pYIN, CQT), [Basic Pitch
 [torchcrepe](https://github.com/maxrmorrison/torchcrepe), [faster-whisper](https://github.com/SYSTRAN/faster-whisper),
 [FAISS](https://github.com/facebookresearch/faiss), [RapidFuzz](https://github.com/rapidfuzz/RapidFuzz), [numba](https://numba.pydata.org/),
 PyTorch, FastAPI, React, Radix UI, Tailwind CSS, Recharts and Lucide. Lyrics of real songs come from [LRCLIB](https://lrclib.net)
-and song metadata, charts and previews from the [Deezer API](https://developers.deezer.com/api). Scientific foundations: Mauch & Dixon (pYIN), Kim et al. (CREPE),
+and song metadata, charts and previews from the [Deezer API](https://developers.deezer.com/api). Melodies of real songs for
+humming come from the [Lakh MIDI Dataset](https://colinraffel.com/projects/lmd/) by Colin Raffel (CC-BY 4.0), with titles from the
+Million Song Dataset (Bertin-Mahieux et al., ISMIR 2011). Scientific foundations: Mauch & Dixon (pYIN), Kim et al. (CREPE),
 Müller (DTW / subsequence DTW), Sakoe & Chiba, Ghias et al. and McNab et al. (query by humming), Jang (MIR-QBSH, linear scaling),
 Cormack et al. (RRF), van den Oord et al. (InfoNCE), Guo et al. (calibration), and Google Research's *The Machine Learning Behind
 Hum to Search*. Full bibliography in [docs/RESEARCH.md](docs/RESEARCH.md#13-references).
@@ -262,4 +267,5 @@ Hum to Search*. Full bibliography in [docs/RESEARCH.md](docs/RESEARCH.md#13-refe
 
 Code: MIT. Demo melodies and lyrics: original works dedicated to the public domain (CC0). Third-party models and datasets keep
 their own licences and are not redistributed. Lyrics of real songs are fetched at run time into your local store
-(`data/store/`, git-ignored) and are never part of the repository. See [LICENSE](LICENSE).
+(`data/store/`, git-ignored) and are never part of the repository. Lakh MIDI is downloaded by `make lakh` and not redistributed;
+`models/melody_encoder_lakh.pt` was trained on it (CC-BY 4.0, attribution above). See [LICENSE](LICENSE).

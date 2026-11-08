@@ -64,9 +64,15 @@ function MatchKind({ item }: { item: ResultItem }) {
   const m = !!item.engines.melody;
   const l = !!item.engines.lyrics;
   const fp = item.engines.fingerprint;
-  const world = item.engines.world ?? (isWorldItem(item) ? { score: item.score } : null);
+  const worldMel = item.engines.world_melody;
+  const world = item.engines.world ?? (isWorldItem(item) && !worldMel ? { score: item.score } : null);
   return (
     <span className="flex flex-wrap gap-1.5">
+      {worldMel && (
+        <Badge tone="accent">
+          <Waves className="h-3 w-3" /> {t("res.melodyOnline")} {fixed(worldMel.score, 2)}
+        </Badge>
+      )}
       {world && (
         <Badge tone="info">
           <Globe2 className="h-3 w-3" /> {t("res.lyricsOnline")} {fixed(world.score, 2)}
@@ -323,7 +329,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
   const mel = result.engines.melody;
   const world = result.engines.world;
   const showTop = top && status !== "no_match";
-  const topIsWorld = !!top && (result.resolved_mode === "lyrics_online" || isWorldItem(top));
+  const topIsWorld = !!top && (result.resolved_mode === "lyrics_online" || result.resolved_mode === "melody_online" || isWorldItem(top));
   const matchedText = (topIsWorld && top?.engines.world?.matched_text) || top?.engines.lyrics?.matched_text;
 
   // What the recogniser understood: Whisper's transcript, or the text that was typed.
@@ -380,7 +386,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
             {d.confidence && <Badge tone={statusUi.tone}>{t(`res.confidence.${d.confidence}` as TKey)}</Badge>}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted">
-            <span>{result.resolved_mode} · {result.resolved_mode === "clip" ? "fingerprint" : result.resolved_mode === "lyrics_online" ? t("res.mode.worldLyrics") : mel?.algorithm ?? "lyrics"} · {fixed(result.elapsed_s, 2)} s</span>
+            <span>{result.resolved_mode} · {result.resolved_mode === "clip" ? "fingerprint" : result.resolved_mode === "lyrics_online" ? t("res.mode.worldLyrics") : result.resolved_mode === "melody_online" ? t("res.mode.worldMelody") : mel?.algorithm ?? "lyrics"} · {fixed(result.elapsed_s, 2)} s</span>
             {onAgain && (
               <Button size="sm" variant="ghost" onClick={onAgain}>
                 <RotateCcw className="h-3.5 w-3.5" /> {t("res.again")}

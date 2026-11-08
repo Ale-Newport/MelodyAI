@@ -49,12 +49,14 @@ def _skyline(starts, ends, pitches) -> NoteSequence:
 def load_midi_melody(data: bytes, track: int | None = None) -> MidiMelody:
     """Extract a monophonic melody from a MIDI file.
 
-    Track selection: explicit ``track`` index, else a non-drum track whose name suggests
-    a melody ("melody", "lead", "vocal", "voice"), else the non-drum track with the highest
-    median pitch among tracks with >= 8 notes. Overlapping notes are reduced with the
+    Track selection: explicit ``track`` index, else the track carrying synced lyric events, else the best track
+    of :func:`melodyai.features.melody_track.rank_melody_tracks` (a vocal-line classifier fitted on real MIDI
+    files), else the non-drum track with the highest median pitch. Overlapping notes are reduced with the
     skyline rule.
     """
     import pretty_midi
+
+    from melodyai.features.melody_track import rank_melody_tracks, vocal_track_from_lyrics
 
     try:
         pm = pretty_midi.PrettyMIDI(io.BytesIO(data))
@@ -69,12 +71,14 @@ def load_midi_melody(data: bytes, track: int | None = None) -> MidiMelody:
             raise ImportErrorMelody(f"Track {track} not found or empty")
         idx, inst = chosen[0]
     else:
-        named = [x for x in insts if any(k in (x[1].name or "").lower() for k in ("melody", "lead", "vocal", "voice"))]
-        if named:
-            idx, inst = named[0]
+        best = vocal_track_from_lyrics(pm)
+        if best is None:
+            ranked = rank_melody_tracks(pm)
+            best = ranked[0][0] if ranked else None
+        if best is not None:
+            idx, inst = best, pm.instruments[best]
         else:
-            rich = [x for x in insts if len(x[1].notes) >= 8] or insts
-            idx, inst = max(rich, key=lambda x: np.median([n.pitch for n in x[1].notes]))
+            idx, inst = max(insts, key=lambda x: np.median([n.pitch for n in x[1].notes]))
     starts = np.array([n.start for n in inst.notes])
     ends = np.array([n.end for n in inst.notes])
     pitches = np.array([n.pitch for n in inst.notes], dtype=float)

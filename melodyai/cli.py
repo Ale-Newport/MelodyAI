@@ -13,6 +13,7 @@
     melodyai report
     melodyai asr-model [--model large-v3-turbo]   # download a Whisper model explicitly
     melodyai world-sync [--preset quick|standard|large] [--limit N] [--store DIR]   # popular songs' lyrics
+    melodyai lakh-download / lakh-build [--limit N] [--holdout N]                   # real songs' melodies (humming)
     melodyai world-search "some words" [--offline] [--language es]                  # open-world lyrics search
     melodyai evaluate-world [--conditions index,online,both] [--limit N] [--no-tts] [--calibrate]
 """
@@ -337,6 +338,49 @@ def cmd_evaluate_world(args) -> None:
     print(f"Saved results to {res['report_path']}" + (f" and {res['markdown_path']}" if res["markdown_path"] else ""))
 
 
+def cmd_lakh_download(args) -> None:
+    """Download Lakh MIDI LMD-matched (~1.4 GB) + match scores + Million Song Dataset titles, and unpack it."""
+    import shutil
+    import subprocess
+    import tarfile
+
+    from melodyai.config import store_dir
+    from melodyai.world.lakh import DOWNLOADS
+
+    base = (Path(args.store).expanduser().resolve() if args.store else store_dir()) / "lakh"
+    dl, raw = base / "download", base / "raw"
+    dl.mkdir(parents=True, exist_ok=True)
+    for name, url in DOWNLOADS.items():
+        target = dl / name
+        if target.is_file() and target.stat().st_size > 0 and not args.force:
+            print(f"have {name}")
+            continue
+        print(f"downloading {url}")
+        subprocess.run(["curl", "-fL", "--retry", "3", "-C", "-", "-o", str(target), url], check=True)
+    if args.force and raw.exists():
+        shutil.rmtree(raw)
+    if not (raw / "lmd_matched").is_dir():
+        print("unpacking lmd_matched.tar.gz")
+        raw.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(dl / "lmd_matched.tar.gz") as tar:
+            tar.extractall(raw, filter="data")
+    print(f"Lakh MIDI ready in {base}")
+
+
+def cmd_lakh_build(args) -> None:
+    """Build the world melody index (<store>/world_melodies) from the downloaded Lakh MIDI files."""
+    from melodyai.config import models_dir, store_dir
+    from melodyai.world.lakh import build_lakh_index
+
+    store = Path(args.store).expanduser().resolve() if args.store else store_dir()
+    if args.checkpoint is None and (models_dir() / "melody_encoder_lakh.pt").is_file():
+        args.checkpoint = "melody_encoder_lakh.pt"
+    meta = build_lakh_index(store / "lakh" / "raw", store / "lakh" / "download", Path(args.out or store / "world_melodies"),
+                            workers=args.workers, limit=args.limit, holdout=args.holdout, checkpoint=args.checkpoint,
+                            reembed=args.reembed, progress=_progress)
+    print(json.dumps(meta, indent=1))
+
+
 def main(argv: list[str] | None = None) -> None:
     from melodyai.lyrics.asr import MODEL_CHOICES as ASR_MODEL_CHOICES
 
@@ -397,6 +441,21 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--store", default=None, help="store directory (default: MELODYAI_STORE_DIR or data/store)")
     s.add_argument("--json", action="store_true", help="print the full result as JSON")
     s.set_defaults(fn=cmd_world_sync)
+    s = sub.add_parser("lakh-download", help="download Lakh MIDI (LMD-matched, CC-BY 4.0, ~1.5 GB) for humming search")
+    s.add_argument("--store", default=None, help="store directory (default: MELODYAI_STORE_DIR or data/store)")
+    s.add_argument("--force", action="store_true", help="download and unpack again")
+    s.set_defaults(fn=cmd_lakh_download)
+    s = sub.add_parser("lakh-build", help="build the humming index of real songs from the downloaded Lakh MIDI")
+    s.add_argument("--store", default=None, help="store directory (default: MELODYAI_STORE_DIR or data/store)")
+    s.add_argument("--out", default=None, help="output folder (default: <store>/world_melodies)")
+    s.add_argument("--limit", type=int, default=None, help="only the N most confidently matched songs")
+    s.add_argument("--holdout", type=int, default=300, help="songs kept out of the index for the evaluation")
+    s.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 2))
+    s.add_argument("--checkpoint", default=None,
+                   help="melody encoder (default: models/melody_encoder_lakh.pt if present, else melody_encoder.pt)")
+    s.add_argument("--reembed", action="store_true",
+                   help="keep the extracted melodies, rebuild only the search index (e.g. after training an encoder)")
+    s.set_defaults(fn=cmd_lakh_build)
     s = sub.add_parser("world-search", help="open-world lyrics search (world index + LRCLIB/Deezer) for typed words")
     s.add_argument("text")
     s.add_argument("--language", default=None, help="es, en, ... (default: any)")

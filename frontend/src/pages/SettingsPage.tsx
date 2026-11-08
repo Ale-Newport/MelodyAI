@@ -142,6 +142,18 @@ function OnlineSearchCard({ onChange }: { onChange: (patch: Partial<UserSettings
           <Row label={t("set.popular.indexed")} hint={ws ? t("set.popular.size", { mb: (ws.db_bytes / 1e6).toLocaleString(lang, { maximumFractionDigits: 1 }) }) : undefined}>
             <span className="text-lg font-semibold tabular">{ws ? ws.songs.toLocaleString(lang) : "…"}</span>
           </Row>
+          {ws?.melodies && (
+            <Row
+              label={t("set.melodies.label")}
+              hint={ws.melodies.built ? t("set.melodies.hint", { melodies: ws.melodies.melodies.toLocaleString(lang) }) : undefined}
+            >
+              {ws.melodies.built ? (
+                <span className="text-lg font-semibold tabular">{ws.melodies.songs.toLocaleString(lang)}</span>
+              ) : (
+                <span className="text-sm text-muted">{t("set.melodies.missing")}</span>
+              )}
+            </Row>
+          )}
           <Row label={t("set.popular.lastSync")}>
             <span className="flex flex-wrap items-center justify-end gap-2 text-sm text-muted">
               {!ws

@@ -32,6 +32,7 @@ Optional steps:
 ```bash
 make asr-model MODEL=large-v3-turbo   # Whisper for spoken/sung lyrics (~1.6 GB; MODEL=base is ~150 MB but weak on singing)
 make world-sync PRESET=quick          # lyrics of popular songs -> data/store/world.db (real songs by their words)
+make lakh                             # optional: melodies of ~25,000 real songs for humming (Lakh MIDI, ~1.5 GB download)
 make train                  # train the neural encoder (≈20–30 min on Apple Silicon) -> models/melody_encoder.pt
 make evaluate               # reproducible benchmark -> experiments/runs/, docs/RESULTS.md
 make evaluate-world         # real-song (open-world) evaluation -> data/reports/, docs/WORLD_RESULTS.md
