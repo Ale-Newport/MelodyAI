@@ -32,6 +32,7 @@ flowchart LR
     ENG --> FUS[fusion: weighted / RRF / CombMNZ / learned + abstention]
     ENG --> FP[fingerprint: quad hashes + verification<br/>clip mode]
     ENG --> PROV[providers: ACRCloud<br/>optional, opt-in]
+    ENG --> WORLD[world: lyrics index + LRCLIB / Deezer<br/>open-world search, words only]
     CAT[catalog.service] --> MIDX[indexing.MelodyIndex]
     CAT --> LIDX[lyrics.LyricsIndex FTS5]
     CAT --> FIDX[fingerprint.FingerprintIndex<br/>LSM segments, mmap]
@@ -121,6 +122,9 @@ data/store/
   indexes/neural/<model-id>/<id>.npy   cached window embeddings per model
   recordings/<rec>.wav       ONLY when retention = keep_with_consent and the user ticked the box
   settings.json              user settings
+  world.db                   open-world lyrics index (popular-songs sync + learned lookups; real lyrics, local only)
+  web_cache.db               cached LRCLIB / Deezer answers (searches carrying user words: hashed keys, ≤ 6 h)
+  world_sync.db (+ .lock)    popular-songs sync state: runs, songs without lyrics; one sync at a time
 ```
 
 * **Versioning.** `FEATURE_VERSION` (in `melodyai/config.py`) is stored with every song. At
@@ -149,13 +153,23 @@ data/store/
 * Decoding never touches client-provided paths; ffmpeg receives bytes on stdin.
 * All IDs in paths are validated (`[A-Za-z0-9_.-]`, no `..`); experiment run IDs and figure
   names have their own strict patterns; neural checkpoints can only be chosen from a server-side list.
-* No outbound network calls in the recognition path, except the optional licensed provider, which needs
-  operator credentials *and* the user's opt-in, sends at most 12 s at 8 kHz, and validates the host name
-  (`identify-*.acrcloud.(com|cn)`). Whisper models are downloaded only by an explicit command
-  (`make asr-model`) or, if the server enables it, by a Settings action.
+* Outbound calls in the recognition path:
+  * The **online song search** (user setting, on by default; `MELODYAI_OFFLINE=1` disables it
+    server-wide) sends only the typed or transcribed *words*, and titles and artists of candidates, to
+    LRCLIB and Deezer, never audio. Keyed sources (Genius, Claude) stay off unless the operator configures
+    them. Details in [OPEN_WORLD.md](OPEN_WORLD.md#3-sources-and-what-leaves-the-machine).
+  * The optional **licensed provider** needs operator credentials *and* the user's opt-in, sends at most
+    12 s at 8 kHz, and validates the host name (`identify-*.acrcloud.(com|cn)`).
+
+  Whisper models are downloaded only by an explicit command (`make asr-model`) or, if the server enables
+  it, by a Settings action.
+* Searches carrying the user's words are cached under hashed keys for at most 6 h. They are not cached
+  at all without a stored history, and deleting the history purges them together with the songs learned
+  from recognitions. Endpoints that send words to third parties take JSON bodies (never URLs), and `/api/*`
+  refuses cross-site requests.
 * Raw audio is never written to disk unless retention is `keep_with_consent` *and* the request sets
   `retain_audio`. The history stores results (including derived pitch data) and can be deleted.
-* Logs do not contain audio or transcripts.
+* Logs do not contain audio or transcripts, and outgoing requests are logged without their query strings.
 
 ## Frontend
 

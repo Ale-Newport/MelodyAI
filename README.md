@@ -3,7 +3,7 @@
 # MelodyAI
 
 **Recognise songs by humming, whistling, singing, the words you remember — or a clip of the song itself (TikTok, radio, sped up or slowed).**
-A research-grade, fully local query-by-humming engine with a web app, a benchmark harness and a training lab.
+A research-grade, local-first query-by-humming engine with a web app, a benchmark harness and a training lab.
 
 [Quick start](#quick-start) · [Features](#features) · [How it works](#how-it-works) · [Results](#results) · [Limitations](#limitations) · [Docs](#documentation)
 
@@ -13,12 +13,17 @@ A research-grade, fully local query-by-humming engine with a web app, a benchmar
 
 MelodyAI explores the problem behind products like Google's *Hum to Search* with transparent, reproducible engineering:
 classical DSP/MIR matchers (pYIN, DTW, subsequence DTW, chroma, note alignment), a small contrastively trained neural melody
-encoder, a fuzzy lyrics engine with optional local speech recognition, and calibrated score fusion with abstention.
+encoder, a fuzzy lyrics engine with optional local speech recognition, calibrated score fusion with abstention, and an
+**open-world lyrics search** that recognises real, well-known songs by the words you sing or type.
 
 > **Honest scope.** MelodyAI ships with an *original, synthetic* 48-song demo catalog so it works out of the box with no
-> copyrighted material. All benchmark numbers are measured on synthetic queries of that catalog. They show that the
-> algorithms behave as designed under controlled transformations — **they are not real-world accuracy figures**, and MelodyAI
-> makes no claim of matching Google's precision, scale or catalog size. See [Limitations](#limitations).
+> copyrighted material. The benchmark numbers in [Results](#results) are measured on synthetic queries of that catalog. They
+> show that the algorithms behave as designed under controlled transformations — **they are not real-world accuracy figures**,
+> and MelodyAI makes no claim of matching Google's precision, scale or catalog size. **Real songs** are recognised only by
+> their *words* (Whisper transcript or typed text), through a local index of popular songs' lyrics and the free LRCLIB / Deezer
+> services ([docs/OPEN_WORLD.md](docs/OPEN_WORLD.md)), with a separate real-song evaluation on 100 songs
+> ([docs/WORLD_RESULTS.md](docs/WORLD_RESULTS.md)). Humming or whistling a real song without words is not recognised. See
+> [Limitations](#limitations).
 
 ## Quick start
 
@@ -29,34 +34,49 @@ make dev          # API http://127.0.0.1:8000 (docs at /docs) + web app http://1
 ```
 
 Then open the web app, listen to a song in **Practice with the catalog**, press the microphone and hum any part of it — the chorus
-in the middle works too. No GPU, Docker, database server, API key or cloud service is needed.
+in the middle works too. No GPU, Docker, database server or API key is needed.
 
-Optional: `make asr-model MODEL=base` (Whisper for spoken/sung lyrics), `make train` (neural encoder, ~20 min on Apple Silicon),
-`make evaluate` (full benchmark → `docs/RESULTS.md`), `make evaluate-scale` (scale benchmark → `docs/SCALE_RESULTS.md`),
-`make ingest DIR=...` (bulk import of music you are licensed to use), `make test`.
+**Real songs, by their words:**
 
-**Spotify / TikTok songs?** Their terms forbid using their audio this way, so MelodyAI cannot index them itself. To recognise
-commercial songs, configure the optional licensed provider (`MELODYAI_ACRCLOUD_*` in `.env`, then opt in under Settings); to build
-your own large catalog, ingest music you have the rights to. Details, legal background and sizing: [docs/SCALING.md](docs/SCALING.md). Windows, Docker and configuration: [docs/INSTALLATION.md](docs/INSTALLATION.md).
+```bash
+make asr-model MODEL=large-v3-turbo   # Whisper for sung lyrics (~1.6 GB; the "auto" setting picks it up)
+make world-sync PRESET=quick          # lyrics of popular songs into a local index (est. ~1,900 songs, ~half an hour)
+```
+
+Then sing (or type) a line you remember. **Online song search** is on by default: the transcribed or typed words, never audio,
+are also looked up on LRCLIB and Deezer, two free services with no key. You can switch it off under Settings, where the Whisper
+model can also be downloaded and the popular-songs sync started. Bigger presets: `standard` (6,954 songs in 2 h 08 min,
+measured) and `large` (24,640 songs, about 7 h 20 min from empty, measured). Details and privacy: [docs/OPEN_WORLD.md](docs/OPEN_WORLD.md).
+
+Optional: `make train` (neural encoder, ~20 min on Apple Silicon), `make evaluate` (full benchmark → `docs/RESULTS.md`),
+`make evaluate-scale` (scale benchmark → `docs/SCALE_RESULTS.md`), `make evaluate-world` (real-song evaluation →
+`docs/WORLD_RESULTS.md`), `make ingest DIR=...` (bulk import of music you are licensed to use), `make test`.
+
+**Spotify / TikTok songs?** Their terms forbid using their audio this way, so MelodyAI cannot index their audio itself. Songs and
+clips *with words* are recognised by those words through the open-world search. For audio-only recognition of commercial songs
+(instrumental clips, humming), configure the optional licensed provider (`MELODYAI_ACRCLOUD_*` exported in the server's
+environment, then opt in under Settings); to build your own large catalog, ingest music you have the rights to. Details, legal
+background and sizing: [docs/SCALING.md](docs/SCALING.md). Windows, Docker and configuration: [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ## Features
 
 | | |
 |---|---|
 | **Six modes** | *Auto*, *Recording* (a clip of the actual track: TikTok/Reels, radio, a song playing nearby), *Hum*, *Whistle*, *Lyrics* (spoken, sung or typed) and *Sing + words* (fused melody and lyrics evidence) |
-| **TikTok-style clips** | Pitch-invariant audio fingerprinting with a speed grid and geometric verification: recognises sped-up/slowed, transposed, noisy and phone-recorded clips and reports *how* they were edited (×1.25, +3.9 semitones) |
+| **Real songs by their words** | Open-world lyrics search: a Whisper transcript or typed text is matched against a local index of popular songs' lyrics (Deezer charts, TikTok viral lists, decades, Latin genres → lyrics from LRCLIB) and, if online search is on, LRCLIB / Deezer at query time; every candidate is verified against its real lyrics (fuzzy, phonetic, order-aware) before it is shown, with abstention ([how](docs/OPEN_WORLD.md)) |
+| **TikTok-style clips** | Pitch-invariant audio fingerprinting with a speed grid and geometric verification: recognises sped-up/slowed, transposed, noisy and phone-recorded clips of *catalog* tracks and reports *how* they were edited (×1.25, +3.9 semitones); clips of real songs with vocals go through their words |
 | **Commercial catalogs (optional)** | Opt-in adapter for a licensed provider (ACRCloud: 150 M+ tracks advertised) with Spotify/YouTube/Deezer links — MelodyAI never scrapes Spotify or TikTok ([why](docs/SCALING.md)) |
 | **Built to scale** | Log-structured, memory-mapped fingerprint segments; IVF-PQ vector index (16 B/vector) with two-stage hum search; parallel resumable ingestion; measured from 48 to 100,000 songs |
 | **Any part of the song** | References are indexed as overlapping multi-length windows; results report the matched time range |
 | **Robustness** | Key (transposition) and tempo invariance, octave-error correction, tolerance to wrong / missing / extra notes and moderate noise — each measured per condition |
 | **Abstention** | "No sufficiently reliable match was found" when evidence is weak; thresholds tuned on out-of-catalog queries; scores are *relative*, and a probability is shown only when calibrated |
 | **Lyrics** | Unicode/accent normalisation, SQLite FTS5 (BM25 + trigram) and IDF-weighted fuzzy token alignment; English and Spanish; works without ASR |
-| **Speech** | Local faster-whisper with VAD, no-speech and hallucination guards, so hums do not become invented words |
+| **Speech** | Local faster-whisper (`auto` = best downloaded model, `large-v3-turbo` recommended) with a VAD gate, a Spanish/English language prior, and no-speech and hallucination guards, so hums do not become invented words |
 | **Neural engine** | 0.8 M-parameter conv + Transformer melody encoder, InfoNCE training on composition-disjoint synthetic data, exact/approximate vector search, DTW re-ranking |
 | **Catalog** | MIDI, WAV/MP3/FLAC/OGG/M4A, TXT/JSON lyrics, CSV/JSON bulk manifests; provenance, licence and SHA-256 per song; incremental, versioned indexing |
 | **Melody Explorer** | Waveform, spectrogram with f0 overlay, pitch contour with voicing confidence, piano roll, chroma, intervals, DTW cost matrix and warping path — all computed from your recording |
 | **Research Lab** | Run benchmarks and training jobs in the background, compare algorithms on one recording, inspect every query, calibration curves, checkpoints |
-| **Privacy** | Local processing; recordings are never stored unless you enable retention *and* consent per recording |
+| **Privacy** | Local processing; recordings are never stored unless you enable retention *and* consent per recording. Online song search sends only words (never audio), with hashed, short-lived cache entries and no words in logs; it can be switched off ([what leaves the machine](docs/OPEN_WORLD.md#3-sources-and-what-leaves-the-machine)) |
 
 ## How it works
 
@@ -71,10 +91,13 @@ flowchart LR
   D --> E4[Neural encoder<br/>+ vector search + DTW re-rank]
   B --> E5[Chroma DTW]
   B --> L[Whisper ASR<br/>or typed text] --> L2[FTS5 + fuzzy<br/>token alignment]
+  L --> W[Open-world search<br/>world lyrics index + LRCLIB / Deezer<br/>verified against real lyrics]
   E1 & E2 & E3 & E4 & E5 --> F[Melody ranking]
   F --> G[Fusion + abstention]
   L2 --> G
-  G --> H[Ranked songs · matched passage<br/>alignment · confidence]
+  G --> R[Local vs open-world<br/>resolution]
+  W --> R
+  R --> H[Ranked songs · matched passage<br/>alignment · confidence]
 ```
 
 | Algorithm | Representation | Invariances | Training | Typical use |
@@ -148,6 +171,20 @@ Humming search degrades as the catalog grows, and the limit is the neural first 
 note alignment at 10,000 songs is slightly more accurate (88.5% on a 96-query subset) but 3× slower and grows linearly.
 Accuracy at Spotify scale is **not** extrapolated; [docs/SCALING.md](docs/SCALING.md) explains the architecture and what is missing.
 
+### Real songs by their words (open world)
+
+From `make evaluate-world` on 100 real songs (55 Spanish / 45 English, incl. 25 TikTok / viral hits and 20 older
+"long-tail" songs) listed by title and artist only: queries are built from their lyrics at run time and never stored.
+World index: 24,640 popular songs. Typed queries and synthetic speech (macOS voices, also "sung" with pitch steps and
+vibrato); real human singing has not been evaluated. Full tables: **[docs/WORLD_RESULTS.md](docs/WORLD_RESULTS.md)**.
+
+* Songs in the local index: the right song first for **97%** of typed chorus / verse / single-line / misremembered
+  queries (TikTok group 99%), ~50 ms offline; with online search on, p50 ~0.24 s.
+* All songs, index + online (the app's default): top-1 **92%**, confident match 83%, **0 false matches**.
+* Online sources alone (empty index): top-1 70%, ~0.6 s p50; weaker for misremembered words and single lines.
+* 0 of 58 everyday non-lyric sentences were accepted as a match, in any condition.
+* Whisper `large-v3-turbo`: WER 0.04 on synthesised speech (96% top-1), ~0.5 on the synthetic "sung" version (62% top-1).
+
 ## Screenshots
 
 | Melody Explorer | Research Lab |
@@ -160,10 +197,16 @@ Accuracy at Spotify scale is **not** extrapolated; [docs/SCALING.md](docs/SCALIN
 
 ## Limitations
 
-* **Synthetic evaluation only.** No real human query dataset has been evaluated yet (MTG-QBH, MIR-QBSH… must be obtained under their
-  licences). `scripts/evaluate_recordings.py` evaluates your own labelled, consented recordings.
+* **Synthetic queries only.** No real human query dataset has been evaluated yet (MTG-QBH, MIR-QBSH… must be obtained under their
+  licences). The open-world evaluation uses real songs, but its queries are typed text and synthesised speech built from their
+  lyrics. `scripts/evaluate_recordings.py` evaluates your own labelled, consented recordings.
 * **Catalog size.** Measured up to 100,000 synthetic songs (hum) and 2,000 synthetic recordings (clips); hum accuracy degrades
   with catalog size (see Results). Nothing was measured on real commercial catalogs.
+* **Real songs only by their words.** The open-world search needs lyrics: humming or whistling a real song, and instrumental
+  clips, are not recognised. That would need melodic references (Lakh MIDI was deliberately not downloaded) or the licensed
+  provider. Coverage is the local index plus what LRCLIB / Deezer know. The first lookup of a song that is not indexed needs
+  the internet. A cover may be shown instead of the original. The `world` thresholds stay provisional until they are
+  calibrated on the full index ([details](docs/OPEN_WORLD.md#11-limitations)).
 * **Polyphonic recordings.** Matching against produced commercial mixes is *not* solved here: the experimental Basic Pitch + skyline
   path was only measured on simple synthetic mixes.
 * **macOS vector search.** FAISS cannot share a process with PyTorch on macOS wheels (duplicate `libomp`); NumPy exact/IVF search is
@@ -181,6 +224,8 @@ Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 4. Spectrogram-domain dual encoder (closer to Hum to Search) once real paired data is available.
 5. ONNX inference (to allow FAISS on macOS) and wiring the two-stage search into the live catalog as its default.
 6. Lyrics-to-melody alignment so sung words and melody constrain the same time span.
+7. Open world: the full real-song evaluation on the complete popular-songs index, calibration of the `world` thresholds, and
+   real sung recordings / TikTok clips as test queries.
 
 ## Documentation
 
@@ -196,6 +241,8 @@ Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 | [RESULTS](docs/RESULTS.md) | auto-generated benchmark report |
 | [SCALING](docs/SCALING.md) | Spotify/TikTok constraints, licensed provider setup, large-catalog architecture |
 | [SCALE_RESULTS](docs/SCALE_RESULTS.md) | auto-generated scale benchmark (48 → 100,000 songs; TikTok-style edits) |
+| [OPEN_WORLD](docs/OPEN_WORLD.md) | real songs by their words: pipeline, sources, what leaves the machine, popular-songs sync, settings, limits |
+| [WORLD_RESULTS](docs/WORLD_RESULTS.md) | auto-generated real-song (open-world) evaluation |
 | [API](docs/API.md) | REST endpoints (OpenAPI at `/docs`) |
 | [LIMITATIONS](docs/LIMITATIONS.md) | what is verified, experimental, missing |
 | [CONTRIBUTING](docs/CONTRIBUTING.md) | workflow, adding matchers/extractors, data rules |
@@ -205,7 +252,8 @@ Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 Built on [librosa](https://github.com/librosa/librosa) (pYIN, CQT), [Basic Pitch](https://github.com/spotify/basic-pitch),
 [torchcrepe](https://github.com/maxrmorrison/torchcrepe), [faster-whisper](https://github.com/SYSTRAN/faster-whisper),
 [FAISS](https://github.com/facebookresearch/faiss), [RapidFuzz](https://github.com/rapidfuzz/RapidFuzz), [numba](https://numba.pydata.org/),
-PyTorch, FastAPI, React, Radix UI, Tailwind CSS, Recharts and Lucide. Scientific foundations: Mauch & Dixon (pYIN), Kim et al. (CREPE),
+PyTorch, FastAPI, React, Radix UI, Tailwind CSS, Recharts and Lucide. Lyrics of real songs come from [LRCLIB](https://lrclib.net)
+and song metadata, charts and previews from the [Deezer API](https://developers.deezer.com/api). Scientific foundations: Mauch & Dixon (pYIN), Kim et al. (CREPE),
 Müller (DTW / subsequence DTW), Sakoe & Chiba, Ghias et al. and McNab et al. (query by humming), Jang (MIR-QBSH, linear scaling),
 Cormack et al. (RRF), van den Oord et al. (InfoNCE), Guo et al. (calibration), and Google Research's *The Machine Learning Behind
 Hum to Search*. Full bibliography in [docs/RESEARCH.md](docs/RESEARCH.md#13-references).
@@ -213,4 +261,5 @@ Hum to Search*. Full bibliography in [docs/RESEARCH.md](docs/RESEARCH.md#13-refe
 ## License
 
 Code: MIT. Demo melodies and lyrics: original works dedicated to the public domain (CC0). Third-party models and datasets keep
-their own licences and are not redistributed. See [LICENSE](LICENSE).
+their own licences and are not redistributed. Lyrics of real songs are fetched at run time into your local store
+(`data/store/`, git-ignored) and are never part of the repository. See [LICENSE](LICENSE).

@@ -17,7 +17,8 @@ class UserSettings(BaseModel):
     pitch_extractor: str = "pyin"
     fusion_method: str = Field("weighted", pattern="^(weighted|rrf|combmnz)$")
     asr_enabled: bool = True
-    asr_model: str = Field("base", pattern="^(tiny|base|small|medium|large-v3)$")
+    # Whisper model; "auto" = best cached (large-v3-turbo > large-v3 > medium > small > base > tiny).
+    asr_model: str = Field("auto", pattern="^(auto|tiny|base|small|medium|large-v3|large-v3-turbo)$")
     asr_language: str | None = Field(None, pattern="^(en|es)$")
     inference_device: str = Field("auto", pattern="^(auto|cpu|mps|cuda)$")
     min_record_seconds: float = Field(5.0, ge=1.0, le=30.0)
@@ -30,6 +31,9 @@ class UserSettings(BaseModel):
     # each recording to the provider.
     external_provider_enabled: bool = False
     provider_policy: str = Field("fallback", pattern="^(fallback|always)$")
+    # Open-world song search: look the typed / transcribed words up on LRCLIB and Deezer (only text is
+    # sent, never audio). Off -> only the local indexes (catalog + world lyrics index) are searched.
+    online_search_enabled: bool = True
 
 
 class SettingsStore:

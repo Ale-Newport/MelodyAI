@@ -14,6 +14,12 @@ export interface SongSummary {
   license?: string | null;
   source?: string | null;
   has_audio?: boolean;
+  /** Open-world songs (reference_type "online"): album art, 30 s preview and streaming links. */
+  cover_url?: string | null;
+  preview_url?: string | null;
+  /** Deezer track id: a fresh preview is resolved by `GET /api/world/preview/{deezer_id}` (stored URLs expire). */
+  deezer_id?: number | null;
+  links?: Record<string, string>;
 }
 
 export interface Song extends SongSummary {
@@ -46,14 +52,133 @@ export interface EngineResultRef {
   pitch_semitones?: number;
 }
 
+/** Per-result evidence from the open-world lyrics search. */
+export interface WorldResultRef extends EngineResultRef {
+  coverage?: number;
+  sources?: string[];
+}
+
 export interface ResultItem {
   rank: number;
   song_id: string;
   score: number;
   song: SongSummary;
-  engines: { melody?: EngineResultRef; lyrics?: EngineResultRef; fingerprint?: EngineResultRef };
+  engines: { melody?: EngineResultRef; lyrics?: EngineResultRef; fingerprint?: EngineResultRef; world?: WorldResultRef };
   match_start?: number | null;
   match_end?: number | null;
+}
+
+/* ------------------------------------------------------------------ open-world lyrics search */
+export type WorldSearchStatus = "ok" | "no_candidates" | "no_query" | "disabled" | "error";
+
+/** A song proposed by an online/local source and verified against its real lyrics. */
+export interface WorldCandidate {
+  song_id: string; // "world:" + WorldSong.id
+  title: string;
+  artist: string;
+  album: string | null;
+  language: string | null;
+  duration_s: number | null;
+  cover_url: string | null;
+  preview_url: string | null; // never an expired signed URL; prefer deezer_id
+  deezer_id?: number | null;
+  rank: number; // Deezer popularity, 0 = unknown
+  links: Record<string, string>; // deezer / spotify / youtube
+  score: number;
+  coverage: number;
+  char_similarity: number;
+  matched_text: string;
+  line_range: [number, number];
+  sources: string[];
+}
+
+export interface WorldSourceRun {
+  status: "ok" | "error" | "skipped" | "unavailable";
+  n: number;
+  elapsed_s: number;
+  message: string;
+}
+
+/** `engines.world` of a recognition, and the body of `POST /api/world/search`. */
+export interface WorldEngineResult {
+  status: WorldSearchStatus;
+  query_text: string;
+  /** Whether online sources were asked; `offline_reason` says why not ("setting_off" | "server_offline"). */
+  online: boolean;
+  offline_reason?: "" | "setting_off" | "server_offline";
+  elapsed_s: number;
+  message: string;
+  sources: Record<string, WorldSourceRun>;
+  candidates: WorldCandidate[];
+  decision?: Decision;
+}
+
+export interface WorldSource {
+  name: string;
+  label: string;
+  online: boolean;
+  requires_key: boolean;
+  available: boolean;
+}
+
+export type WorldSyncPresetName = "quick" | "standard" | "large";
+
+export interface WorldSyncPreset {
+  name: WorldSyncPresetName;
+  label: string;
+  approx_songs: number;
+  approx_minutes: number;
+}
+
+export interface WorldLastSync {
+  preset: string;
+  /** completed | cancelled | error (older servers omit it). */
+  status?: string | null;
+  finished_at: string | number | null; // ISO date or epoch seconds
+  added: number;
+  collected: number;
+}
+
+/** A popular-songs sync run by another process on the same store (e.g. `melodyai world-sync`). */
+export interface WorldRunningSync {
+  preset: string | null;
+  started_at: number | null;
+  updated_at: number | null;
+  total: number;
+  done: number;
+}
+
+/** `GET /api/world/status`. */
+export interface WorldStatus {
+  songs: number;
+  /** The user setting and a server that is not offline. */
+  online_enabled: boolean;
+  /** False when the server runs with MELODYAI_OFFLINE (older servers omit it). */
+  server_online?: boolean;
+  sources: WorldSource[];
+  last_sync: WorldLastSync | null;
+  db_bytes: number;
+  presets: WorldSyncPreset[];
+  running_sync?: WorldRunningSync | null;
+}
+
+/** `GET /api/world/songs`: a WorldSong without its lyrics. */
+export interface WorldSongMeta {
+  id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  duration_s: number | null;
+  language: string | null;
+  rank: number;
+  deezer_id: number | null;
+  isrc: string | null;
+  lrclib_id: number | null;
+  cover_url: string | null;
+  link: string | null;
+  preview_url: string | null;
+  source: string;
+  added_at: number;
 }
 
 export interface PitchTrackData {
@@ -173,6 +298,8 @@ export interface RecognitionResult {
       reliability?: number;
       candidates: { song_id: string; score: number; matched_text: string; coverage: number }[];
     };
+    /** Present whenever there was a query text (typed or transcribed). */
+    world?: WorldEngineResult;
   };
   alignment?: Alignment | null;
 }
@@ -211,6 +338,8 @@ export interface ModelsInfo {
   asr: {
     package_installed: boolean;
     models: { name: string; cached: boolean; installed_package: boolean }[];
+    /** "auto": the best cached model (`resolved`), or nothing cached yet. */
+    auto?: { name: string; installed_package: boolean; cached: boolean; resolved: string | null };
     active: string;
     downloads_allowed: boolean;
     note: string;
@@ -225,6 +354,9 @@ export interface ModelsInfo {
   providers_enabled: boolean;
 }
 
+/** "auto" = best model already downloaded (large-v3-turbo > large-v3 > medium > small > base > tiny). */
+export type AsrModel = "auto" | "tiny" | "base" | "small" | "medium" | "large-v3" | "large-v3-turbo";
+
 export interface UserSettings {
   ui_language: "en" | "es";
   theme: "dark" | "light" | "system";
@@ -233,7 +365,9 @@ export interface UserSettings {
   pitch_extractor: string;
   fusion_method: "weighted" | "rrf" | "combmnz";
   asr_enabled: boolean;
-  asr_model: string;
+  asr_model: AsrModel;
+  /** Look the transcribed words up on LRCLIB/Deezer (never audio). */
+  online_search_enabled: boolean;
   asr_language: "en" | "es" | null;
   inference_device: "auto" | "cpu" | "mps" | "cuda";
   min_record_seconds: number;

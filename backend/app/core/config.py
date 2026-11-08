@@ -1,10 +1,20 @@
-"""Server configuration (environment variables prefixed with ``MELODYAI_``, or ``.env``)."""
+"""Server configuration (environment variables prefixed with ``MELODYAI_``, or ``.env``).
+
+``ServerSettings`` reads its own fields from ``.env``. Other modules (licensed provider, open-world sources,
+Whisper) read ``MELODYAI_*`` variables with ``os.environ``, so :func:`export_env_file` copies the ``MELODYAI_*``
+entries of ``.env`` into the process environment at startup, never overriding a variable that is already set.
+``MELODYAI_ENV_FILE`` points to another file; an empty value disables it (the test suite does this).
+"""
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ENV_FILE = ".env"
 
 
 class ServerSettings(BaseSettings):
@@ -22,6 +32,24 @@ class ServerSettings(BaseSettings):
     load_neural_model: bool = True            # load models/melody_encoder.pt at startup if present
 
 
+def export_env_file(path: str | Path | None = None) -> list[str]:
+    """Copy ``MELODYAI_*`` entries of ``.env`` into ``os.environ`` (existing variables win). Returns the names set."""
+    if path is None:
+        path = os.environ.get("MELODYAI_ENV_FILE", ENV_FILE)
+    if not path or not Path(path).is_file():
+        return []
+    from dotenv import dotenv_values
+
+    added = []
+    for key, value in dotenv_values(path).items():
+        if key.startswith("MELODYAI_") and value is not None and key not in os.environ:
+            os.environ[key] = value
+            added.append(key)
+    return added
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> ServerSettings:
-    return ServerSettings()
+    export_env_file()
+    env_file = os.environ.get("MELODYAI_ENV_FILE", ENV_FILE) or None
+    return ServerSettings(_env_file=env_file)

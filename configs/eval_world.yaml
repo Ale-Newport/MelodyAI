@@ -1,0 +1,146 @@
+# Real-song evaluation of the open-world (lyrics) recognition -- `make evaluate-world`
+#   python -m melodyai.cli evaluate-world --config configs/eval_world.yaml [--limit N] [--no-tts] [--calibrate]
+#
+# Songs are listed by TITLE + ARTIST + language (+ tags) ONLY. Never add lyrics here (the loader rejects any other
+# key): lyrics are looked up at run time (world index record, else LRCLIB) and query variants are regenerated from
+# them with a seeded RNG, in memory only. Whether a song is already in the world index ("in_sync") is checked at
+# run time, never hardcoded.
+#
+# Tags: genre and decade; group tags drive the summary tables:
+#   tiktok    -- recent TikTok / viral songs, picked programmatically from Deezer editorial TikTok playlists by
+#                melodyai.evaluation.world_eval.pick_trending (owner = a Deezer editor; LRCLIB lyrics in es/en);
+#   long_tail -- well-known songs that are probably NOT in a popular-songs sync (older classics, album tracks):
+#                they measure the online fallback.
+name: world
+seed: 7
+store: null              # MELODYAI_STORE_DIR or data/store (world.db is only read: every search has learn=False)
+lyrics_cache: null       # <store>/world_eval_cache.db (ground-truth lyrics lookups, cached)
+join: " "                # query lines joined like one run-on transcript
+language_hint: false     # typed variants are searched without a language (as when the app's language is "auto")
+variants: [chorus, verse, line, misremembered, asr, asr_sung, negative]
+conditions:
+  index: {}                          # local world index only, offline
+  online: {max_queries: 60}          # empty index + LRCLIB / Deezer (seeded sample, even over variants)
+  both: {max_queries: 60}            # world index + online sources (the app's default)
+online:
+  sources: [index, lrclib, deezer]   # keyed sources (genius, claude) only when listed here and configured
+  lrclib_rps: 0.4                    # average LRCLIB requests/s of the online conditions (shared free service)
+  deadline_s: 9.0
+misremembered: {drop: 0.15}
+asr:
+  model: auto                        # best cached Whisper model
+  max_songs: 24
+  stretch: 0.75
+  voices: {es: [Paulina, Mónica], en: [Samantha, Daniel]}
+negatives: {n: 30}
+calibration:
+  max_fmr: 0.05                      # false matches / (song queries + negatives)
+  max_negative_fmr: 0.05
+  conditions: null                   # all evaluated conditions
+
+songs:
+  # ---------------------------------------------------------------- Spanish hits (70s-2020s)
+  - {title: "Despacito", artist: "Luis Fonsi", language: es, tags: [reggaeton, 2010s]}
+  - {title: "Gasolina", artist: "Daddy Yankee", language: es, tags: [reggaeton, 2000s]}
+  - {title: "Tusa", artist: "Karol G", language: es, tags: [reggaeton, 2010s]}
+  - {title: "Dákiti", artist: "Bad Bunny", language: es, tags: [reggaeton, 2020s]}
+  - {title: "Me Porto Bonito", artist: "Bad Bunny", language: es, tags: [reggaeton, 2020s]}
+  - {title: "Danza Kuduro", artist: "Don Omar", language: es, tags: [reggaeton, 2010s]}
+  - {title: "Mi Gente", artist: "J Balvin", language: es, tags: [reggaeton, 2010s]}
+  - {title: "El Perdón", artist: "Nicky Jam", language: es, tags: [reggaeton, 2010s]}
+  - {title: "Propuesta Indecente", artist: "Romeo Santos", language: es, tags: [bachata, 2010s]}
+  - {title: "Obsesión", artist: "Aventura", language: es, tags: [bachata, 2000s]}
+  - {title: "La Bachata", artist: "Manuel Turizo", language: es, tags: [bachata, 2020s]}
+  - {title: "Bailando", artist: "Enrique Iglesias", language: es, tags: [pop, 2010s]}
+  - {title: "La Bicicleta", artist: "Carlos Vives", language: es, tags: [pop, 2010s]}
+  - {title: "La Camisa Negra", artist: "Juanes", language: es, tags: [pop, rock, 2000s]}
+  - {title: "Ojos Así", artist: "Shakira", language: es, tags: [pop, 90s]}
+  - {title: "María", artist: "Ricky Martin", language: es, tags: [pop, 90s]}
+  - {title: "Corazón Partío", artist: "Alejandro Sanz", language: es, tags: [pop, 90s]}
+  - {title: "Un Año", artist: "Sebastián Yatra", language: es, tags: [pop, 2010s]}
+  - {title: "Mariposa Traicionera", artist: "Maná", language: es, tags: [rock, 2000s]}
+  - {title: "De Música Ligera", artist: "Soda Stereo", language: es, tags: [rock, 90s]}
+  - {title: "Persiana Americana", artist: "Soda Stereo", language: es, tags: [rock, 80s]}
+  - {title: "La Flaca", artist: "Jarabe de Palo", language: es, tags: [rock, 90s]}
+  - {title: "Lamento Boliviano", artist: "Enanitos Verdes", language: es, tags: [rock, 90s]}
+  - {title: "Eres Tú", artist: "Mocedades", language: es, tags: [ballad, 70s]}
+  - {title: "Gavilán o Paloma", artist: "José José", language: es, tags: [ballad, 70s]}
+  - {title: "Vivir Así Es Morir de Amor", artist: "Camilo Sesto", language: es, tags: [ballad, 70s]}
+  - {title: "Hasta Que Te Conocí", artist: "Juan Gabriel", language: es, tags: [ballad, 80s]}
+  - {title: "Ahora Te Puedes Marchar", artist: "Luis Miguel", language: es, tags: [pop, 80s]}
+  - {title: "El Rey", artist: "Vicente Fernández", language: es, tags: [regional_mexicano, 70s]}
+  - {title: "Ella Baila Sola", artist: "Eslabon Armado", language: es, tags: [regional_mexicano, 2020s]}
+  - {title: "Adiós Amor", artist: "Christian Nodal", language: es, tags: [regional_mexicano, 2010s]}
+  - {title: "Latinoamérica", artist: "Calle 13", language: es, tags: [hip_hop, 2010s]}
+  - {title: "Quevedo: Bzrp Music Sessions, Vol. 52", artist: "Bizarrap", language: es, tags: [hip_hop, 2020s]}
+  - {title: "Vivir Mi Vida", artist: "Marc Anthony", language: es, tags: [salsa, 2010s]}
+  # ---------------------------------------------------------------- Spanish long tail (probably not in a popular sync)
+  - {title: "Ojalá", artist: "Silvio Rodríguez", language: es, tags: [trova, 70s, long_tail]}
+  - {title: "Mediterráneo", artist: "Joan Manuel Serrat", language: es, tags: [ballad, 70s, long_tail]}
+  - {title: "Alfonsina y el Mar", artist: "Mercedes Sosa", language: es, tags: [folk, 70s, long_tail]}
+  - {title: "Te Recuerdo Amanda", artist: "Víctor Jara", language: es, tags: [folk, 70s, long_tail]}
+  - {title: "Gracias a la Vida", artist: "Violeta Parra", language: es, tags: [folk, 60s, long_tail]}
+  - {title: "Cuando Pase el Temblor", artist: "Soda Stereo", language: es, tags: [rock, 80s, long_tail]}
+  - {title: "Y Nos Dieron las Diez", artist: "Joaquín Sabina", language: es, tags: [pop, 90s, long_tail]}
+  - {title: "El Baile de los Que Sobran", artist: "Los Prisioneros", language: es, tags: [rock, 80s, long_tail]}
+  - {title: "Antología", artist: "Shakira", language: es, tags: [pop, 90s, long_tail]}
+  - {title: "Lágrimas Negras", artist: "Diego el Cigala", language: es, tags: [bolero, 2000s, long_tail]}
+  # ---------------------------------------------------------------- English hits (70s-2020s)
+  - {title: "Dancing Queen", artist: "ABBA", language: en, tags: [pop, 70s]}
+  - {title: "Stayin' Alive", artist: "Bee Gees", language: en, tags: [disco, 70s]}
+  - {title: "Bohemian Rhapsody", artist: "Queen", language: en, tags: [rock, 70s]}
+  - {title: "Hotel California", artist: "Eagles", language: en, tags: [rock, 70s]}
+  - {title: "Billie Jean", artist: "Michael Jackson", language: en, tags: [pop, 80s]}
+  - {title: "Every Breath You Take", artist: "The Police", language: en, tags: [rock, 80s]}
+  - {title: "Livin' on a Prayer", artist: "Bon Jovi", language: en, tags: [rock, 80s]}
+  - {title: "Sweet Child O' Mine", artist: "Guns N' Roses", language: en, tags: [rock, 80s]}
+  - {title: "Smells Like Teen Spirit", artist: "Nirvana", language: en, tags: [rock, 90s]}
+  - {title: "Wonderwall", artist: "Oasis", language: en, tags: [rock, 90s]}
+  - {title: "...Baby One More Time", artist: "Britney Spears", language: en, tags: [pop, 90s]}
+  - {title: "Juicy", artist: "The Notorious B.I.G.", language: en, tags: [hip_hop, 90s]}
+  - {title: "Lose Yourself", artist: "Eminem", language: en, tags: [hip_hop, 2000s]}
+  - {title: "In Da Club", artist: "50 Cent", language: en, tags: [hip_hop, 2000s]}
+  - {title: "Hips Don't Lie", artist: "Shakira", language: en, tags: [pop, 2000s]}
+  - {title: "Rolling in the Deep", artist: "Adele", language: en, tags: [pop, 2010s]}
+  - {title: "Shape of You", artist: "Ed Sheeran", language: en, tags: [pop, 2010s]}
+  - {title: "Uptown Funk", artist: "Mark Ronson", language: en, tags: [pop, 2010s]}
+  - {title: "Bad Guy", artist: "Billie Eilish", language: en, tags: [pop, 2010s]}
+  - {title: "Blinding Lights", artist: "The Weeknd", language: en, tags: [pop, 2020s]}
+  - {title: "Flowers", artist: "Miley Cyrus", language: en, tags: [pop, 2020s]}
+  - {title: "Anti-Hero", artist: "Taylor Swift", language: en, tags: [pop, 2020s]}
+  # ---------------------------------------------------------------- English long tail (probably not in a popular sync)
+  - {title: "Thunder Road", artist: "Bruce Springsteen", language: en, tags: [rock, 70s, long_tail]}
+  - {title: "Pink Moon", artist: "Nick Drake", language: en, tags: [folk, 70s, long_tail]}
+  - {title: "Ziggy Stardust", artist: "David Bowie", language: en, tags: [rock, 70s, long_tail]}
+  - {title: "Ventura Highway", artist: "America", language: en, tags: [rock, 70s, long_tail]}
+  - {title: "Tangled Up in Blue", artist: "Bob Dylan", language: en, tags: [folk, 70s, long_tail]}
+  - {title: "Harvest Moon", artist: "Neil Young", language: en, tags: [folk, 90s, long_tail]}
+  - {title: "Under the Milky Way", artist: "The Church", language: en, tags: [rock, 80s, long_tail]}
+  - {title: "Cemetry Gates", artist: "The Smiths", language: en, tags: [rock, 80s, long_tail]}
+  - {title: "Fake Plastic Trees", artist: "Radiohead", language: en, tags: [rock, 90s, long_tail]}
+  - {title: "Holland, 1945", artist: "Neutral Milk Hotel", language: en, tags: [rock, 90s, long_tail]}
+  # ---------------------------------------------------------------- TikTok / viral (picked 2026-11-07, see header)
+  - {title: "Bonito Bonito", artist: "Río Roma", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "Beretta", artist: "El De Las R's", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "Te Estoy Correteando", artist: "Latin Mafia", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "INTERÉS HACIA TI", artist: "FAMA", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "BbY WOW", artist: "KAROL G", language: es, tags: [tiktok]}   # TikTok Hits World
+  - {title: "PVTA", artist: "Tito Double P", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "ME VALE V", artist: "Tito Double P", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "Cucu de Teibolera", artist: "Dj Aza", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "Matcha Latte", artist: "Grupo Firme", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "Morí", artist: "Crecer German", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "poonte perritaa", artist: "Bb trickz", language: es, tags: [tiktok]}   # Salidas de TikTok
+  - {title: "Coming Up Roses", artist: "Harry Styles", language: en, tags: [tiktok]}   # TikTok Hits World
+  - {title: "Housewife", artist: "Tate McRae", language: en, tags: [tiktok]}   # TikTok Hits France
+  - {title: "Movin' To The Sun", artist: "HUGEL", language: en, tags: [tiktok]}   # Viral Dance
+  - {title: "L'Amour Toujours", artist: "Gigi D'Agostino", language: en, tags: [tiktok]}   # Viral Dance
+  - {title: "Nicole Kidman", artist: "ADÉLA", language: en, tags: [tiktok]}   # TikTok Hits World
+  - {title: "Ain't In LA", artist: "ADÉLA", language: en, tags: [tiktok]}   # TikTok Hits France
+  - {title: "Stop The Wedding!", artist: "Ashe", language: en, tags: [tiktok]}   # TikTok Hits Germany
+  - {title: "Angel Of My Dreams", artist: "JADE", language: en, tags: [tiktok]}   # TikTok Hits World
+  - {title: "Talk To You", artist: "ANOTR", language: en, tags: [tiktok]}   # Viral Dance
+  - {title: "When The Beat Drops Out", artist: "Marlon Roudette", language: en, tags: [tiktok]}   # TikTok Hits Germany
+  - {title: "Stereo Love", artist: "Edward Maya", language: en, tags: [tiktok]}   # Viral Dance
+  - {title: "STORM II", artist: "GENER8ION", language: en, tags: [tiktok]}   # TikTok Hits World
+  - {title: "Let Me Love You", artist: "DJ Snake", language: en, tags: [tiktok]}   # Viral Dance

@@ -57,6 +57,11 @@
    "accept": 0.3105,
    "uncertain": 0.2635,
    "margin": 0.0
+  },
+  "world": {
+   "accept": 0.62,
+   "uncertain": 0.45,
+   "margin": 0.07
   }
  },
  "platt": {
@@ -129,6 +134,36 @@
     3.381114336946288
    ],
    "intercept": -1.5254617565574562
+  }
+ },
+ "world_calibration": {
+  "generated_at": "2026-11-08T06:46:42.079772+00:00",
+  "source_run": "20261108T061526Z-world-final",
+  "note": "Open-world thresholds chosen from the real-song evaluation (melodyai evaluate-world, run 20261108T061526Z-world-final): the strict fit with zero false matches (accept 0.62, margin 0.07) was chosen over the budgeted fit (accept 0.52, margin 0, 534 vs 491 correct matches but 24 false matches, 3.6%): a confident wrong answer is worse than an 'uncertain' one that still lists the right song first. 'uncertain' is kept at 0.45 so that unrelated text is not shown as a possible match.",
+  "fit": {
+   "n_songs": 616,
+   "n_negatives": 58,
+   "correct_matches": 491,
+   "match_rate": 0.797,
+   "false_matches": 0,
+   "fmr": 0.0,
+   "negative_fmr": 0.0,
+   "precision": 1.0
+  },
+  "budgeted_fit": {
+   "thresholds": {
+    "accept": 0.52,
+    "margin": 0.0,
+    "uncertain": 0.3453
+   },
+   "n_songs": 616,
+   "n_negatives": 58,
+   "correct_matches": 534,
+   "match_rate": 0.8668831168831169,
+   "false_matches": 24,
+   "fmr": 0.03560830860534125,
+   "negative_fmr": 0.0,
+   "precision": 0.956989247311828
   }
  }
 }

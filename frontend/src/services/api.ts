@@ -13,6 +13,10 @@ import type {
   Song,
   TrainingRun,
   UserSettings,
+  WorldEngineResult,
+  WorldSongMeta,
+  WorldStatus,
+  WorldSyncPresetName,
 } from "@/types/api";
 
 export class ApiError extends Error {
@@ -138,4 +142,19 @@ export const api = {
   cancelJob: (id: string) => request<Job>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   activateNeural: (checkpoint: string) => request("/api/models/neural/activate", json("POST", { checkpoint })),
   downloadAsr: (model: string) => request<Job>("/api/models/asr/download", json("POST", { model })),
+
+  // Open-world lyrics search: only text (typed or transcribed words) ever leaves the server, never audio.
+  worldStatus: () => request<WorldStatus>("/api/world/status"),
+  startWorldSync: (preset: WorldSyncPresetName, limit?: number | null) =>
+    request<Job>("/api/world/sync", json("POST", { preset, limit: limit ?? null })),
+  // POST with a JSON body: the words stay out of URLs / access logs, and other sites cannot trigger it.
+  worldSearch: (q: string, language?: string, topK?: number) =>
+    request<WorldEngineResult>("/api/world/search", json("POST", { q, language: language ?? null, top_k: topK ?? 5 })),
+  /** Redirects to a fresh 30 s Deezer preview (stored preview URLs expire after ~15 minutes). */
+  worldPreviewUrl: (deezerId: number) => `/api/world/preview/${encodeURIComponent(String(deezerId))}`,
+  worldSongs: (q = "", offset = 0, limit = 50) => {
+    const p = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+    if (q.trim()) p.set("q", q.trim());
+    return request<WorldSongMeta[]>(`/api/world/songs?${p}`);
+  },
 };

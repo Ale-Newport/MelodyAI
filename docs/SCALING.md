@@ -25,16 +25,23 @@ Even Google's Hum to Search launched with about half a million songs: humming se
 | Reference needed | Any audio recording of the track | A melody: MIDI, isolated vocals, or a melody extracted from the mix (hard) |
 | Scales to 10^8? | Yes (industrial practice); storage is linear in audio hours | Candidate generation scales; the bottleneck is obtaining good melody references from produced mixes |
 
+A third route needs no audio references at all: when people sing from memory they sing **words**.
+MelodyAI recognises real, commercial songs by their lyrics. It searches a local index of popular songs'
+lyrics plus LRCLIB / Deezer, sends only text and verifies every candidate against its lyrics. This
+covers sung queries and clips with vocals, but not hums, whistles or instrumental audio. See
+[OPEN_WORLD.md](OPEN_WORLD.md).
+
 ## 3. Path A — licensed provider (ACRCloud)
 
 1. Create an ACRCloud account and an *Audio & Video Recognition* project (enable humming / cover
    detection in the project if you want hums sent there as well).
-2. Put the credentials in `.env` (never commit them):
+2. Put the credentials in `.env` (the server exports its `MELODYAI_*` entries at startup; never commit
+   it) or export them in the environment of the server process:
 
    ```bash
-   MELODYAI_ACRCLOUD_HOST=identify-eu-west-1.acrcloud.com
-   MELODYAI_ACRCLOUD_ACCESS_KEY=...
-   MELODYAI_ACRCLOUD_ACCESS_SECRET=...
+   export MELODYAI_ACRCLOUD_HOST=identify-eu-west-1.acrcloud.com
+   export MELODYAI_ACRCLOUD_ACCESS_KEY=...
+   export MELODYAI_ACRCLOUD_ACCESS_SECRET=...
    ```
 
    A separate humming project can be given with the `MELODYAI_ACRCLOUD_HUMMING_*` variables.

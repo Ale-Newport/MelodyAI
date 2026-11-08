@@ -114,17 +114,58 @@ member contributing its top-20 songs. `ensemble_neural` adds `neural_rerank`.
 * **Index**: SQLite FTS5 tables with `unicode61 remove_diacritics` (BM25 word retrieval) and
   `trigram` (substring retrieval for misspellings). For ≤ 500 lyric documents every song is scored;
   above that, candidates are the union of the two FTS5 queries.
-* **Scoring**: Smith-Waterman over tokens. A query/reference token pair scores +w if RapidFuzz
+* **Scoring** (`melodyai/lyrics/align.py`, shared with the open-world search): Smith-Waterman over
+  tokens. A query/reference token pair scores +w if RapidFuzz
   ratio ≥ 84, +w/2 if ≥ 67, −w/2 otherwise, where w = IDF of the query token (× 0.3 for stop-words);
   gap penalty 0.4·mean(w). Coverage = aligned weight / total weight. Final score =
   0.8·coverage + 0.2·RapidFuzz partial-ratio of the query against the matched lines (±1 line).
   Words must appear *in order and close together*, which is what separates "the song" from "a song
   about the same topic". Semantic embeddings are intentionally not used.
-* **ASR**: faster-whisper (`tiny`…`large-v3`, default `base`, CPU int8), beam 5, temperature 0,
-  Silero VAD (min silence 400 ms). Segments are dropped if (no-speech > 0.6 and avg logprob < −0.5),
-  avg logprob < −1.2, compression ratio > 2.6, or the text is a known Whisper hallucination
-  ("thank you", "gracias", "subtítulos…"). At least two alphabetic words are required; otherwise
-  `speech_detected = false` and the lyrics engine abstains instead of inventing text.
+* **ASR** (`melodyai/lyrics/asr.py`): faster-whisper, `tiny` … `large-v3`, `large-v3-turbo`. The default
+  setting `auto` uses the best model already downloaded, in the order `large-v3-turbo`, `large-v3`,
+  `medium`, `small`, `base`, `tiny`. `large-v3-turbo` (~1.6 GB) is the model that makes sung lyrics usable;
+  `base` mangles most sung lines. It runs on CPU or CUDA (no Apple MPS in CTranslate2): float32 on Apple Silicon, int8
+  elsewhere (`MELODYAI_ASR_COMPUTE_TYPE`).
+  * **VAD gate**: Silero VAD (threshold 0.5, min silence 400 ms) only decides *whether* Whisper runs.
+    Below `MIN_VAD_SPEECH_S` = 1.5 s of detected speech, Whisper is skipped, which keeps hums, whistles,
+    noise and instrumental music out. It does not cut the audio, because it under-detects singing.
+  * **One encoder pass per clip**: Whisper encodes a padded 30 s window, and for a short query the encoder
+    is most of the cost. An `EncoderCache` on each loaded model memoises `encode` by the window's bytes
+    (shape, dtype, 128-bit BLAKE2 digest), and the language is detected on exactly the window the decoder
+    sees, so language detection and every decoding of a clip <= 30 s share one encoder pass. Every
+    decoding also has a token budget (`MAX_TOKENS_PER_S` = 30 tokens per second of audio, at most 400),
+    which stops runaway loops early. In an interleaved A/B on the same machine this cut the time per
+    sung or spoken clip by about 40 % (4.9 s instead of 8.2 s mean, under the load of a parallel sync).
+  * **Language**: when no language is given, it is chosen as `argmax p(lang | audio) × prior(lang)`
+    (es, en 1.0; pt 0.35; it, fr 0.3; de 0.2; others 0.05). Sung Spanish is often misdetected.
+  * **Decoding**: beam 5, temperature 0 and no temperature fallback (on singing it turned empty
+    outputs into fluent invented text), not conditioned on previous text.
+  * **Segment filter**: segments are dropped if (no-speech > 0.6 and avg logprob < −0.5), if the avg
+    logprob is < −1.2, if the compression ratio is > 2.8 (repetition loops), or if the text is a known Whisper
+    hallucination ("thank you", "gracias", "subtítulos…"). Bracketed annotations and music symbols are
+    stripped.
+  * **Words required**: at least three real words must remain, and vocables such as "la la", "mm" or
+    "ooh" do not count. Otherwise the further decodings below are tried, and if none is usable,
+    `speech_detected = false` and the lyrics engines abstain instead of inventing text.
+  * **Further decodings** (all on the cached encoder output):
+    * *Alternative sung language*: when the prior picked a language other than es/en with a posterior
+      < 0.9, the clip is also decoded (beam 5) in the likelier of es/en. Of the usable decodings, the one
+      with the best `decoding_score` wins: the duration-weighted mean log-prob of its kept segments and of
+      the segments it failed on (low log-prob, repetition, loop, hallucination; each counted as at most
+      −1.2), so one fluent line cannot beat a complete transcript of the clip. A real pt/fr/it/de
+      recording keeps its language.
+    * *Greedy retry*: when no decoding is usable although the VAD heard a voice, the clip is decoded once
+      more in the same language with beam 1 (never the other language: a failed English chorus re-decoded
+      as Spanish became a confident false match). Its transcript needs 3 distinct words, or the first
+      decoding must have heard its words (≥ 50 % agreement): greedy decoding of sung vocables returned
+      one invented word three times, while a chorus that repeats one word is heard by both decodings.
+    * *Relaxed tier*: then a window above the compression-ratio limit is kept with its repetition
+      collapsed (a chorus that really repeats a phrase) if it emits at most 5 words per second of audio
+      (decoder loops: 6.4–12.4; sung choruses: 1.2–3.8), has at least 3 distinct words and the other
+      decoding heard at least 50 % of them (looped hallucinations on reversed speech agreed 0–17 %).
+  * **Diagnostics**: `Transcript.passes` lists, without any text, what each decoding produced: language,
+    beam, segment counts, the rule that dropped each segment, whether it was usable (strict / relaxed),
+    its agreement and whether it was used.
 
 ## 7. Fusion and abstention (`melodyai/fusion`)
 
@@ -148,6 +189,9 @@ member contributing its top-20 songs. `ensemble_neural` adds `neural_rerank`.
 2. Otherwise: profile detection (YIN median f0 over loud frames > 700 Hz → whistle), melody
    analysis; Whisper runs if enabled and the model is available locally.
 3. Both engines produced candidates → fusion; only one → that engine; none → `no_match`.
+4. Whenever there is query text (typed, or a transcript), the open-world search (section 12) runs in a
+   background thread alongside the local engines. Its answer replaces the local one by the rules in
+   section 12 (`resolved_mode = "lyrics_online"`).
 
 ## 9. Audio fingerprinting (`melodyai/fingerprint`, `clip` mode)
 
@@ -196,3 +240,76 @@ The loudest 12 s of the recording are sent as 8 kHz WAV; `metadata.music` (recor
 or `metadata.humming` (score 0–1) are parsed into title/artists/album/ISRC/links. Hosts must match
 `identify-*.acrcloud.(com|cn)`. Status 1001 = no result. Policy `fallback` (default) only calls the
 provider when the local decision is not `match`.
+
+## 12. Open-world lyrics search (`melodyai/world`)
+
+Real songs recognised by their words. The design, privacy rules, popular-songs sync and limits are in
+[OPEN_WORLD.md](OPEN_WORLD.md); measured numbers are in [WORLD_RESULTS.md](WORLD_RESULTS.md).
+
+* **Query**: typed text or a Whisper transcript; at least 3 tokens, one of them informative.
+* **World lyrics index** (`world/index.py`, SQLite FTS5 `unicode61 remove_diacritics 2`): one row per
+  distinct lyric line, with normalised words and the phonetic keys of its informative words. Retrieval
+  is one `MATCH` with an OR over the rarest query words (within a song-frequency budget) and their
+  phonetic keys (BM25 weight 0.7), plus pairs of phonetic keys for common words. Line BM25 is summed over
+  a song's best 3 lines, and the best 150 songs are kept. IDF blends song-level document frequency with
+  a prior that gives function words a low weight.
+* **Scheduling**: everything runs under one deadline (9 s); a source failure is recorded, never raised.
+  The local index answers first, alone for at most 0.5 s. Its answer is *settled* when the best
+  alignment leads every other song (not its own versions) by 0.15 at a score of 0.9 or more, rising
+  linearly to a lead of 0.3 at 0.7, the query has at least 3 distinct informative words and the song's
+  most popular recording has rank ≥ 300,000 and no version mark: the online sources are then not asked,
+  except for one cacheable Deezer title search, which makes the answer only probable when it finds a more
+  popular recording with that title by another artist that the index does not hold, by an artist with
+  other songs in the index (the indexed one may be a popular cover; an unknown artist is more often a
+  cover channel that Deezer ranks above the original). The answer is *probable* when it falls short only on the words or the version mark,
+  when it aligns ≥ 0.9 without a clear lead, or when it aligns ≥ 0.5 with a lead of 0.3: the online
+  sources then get 1 s to answer and the lyric lookups of their proposals 2 s from the first one (at most
+  5, and the index's own candidates do not count as the strong match that ends lookups early). Otherwise the online sources run with the whole deadline (proposals until 55 % of it, lookups until
+  85 %).
+* **Online sources** (only while online search is on): Deezer track search with overlapping 7-word windows
+  of the sung words (stride 4, at most 6, the most informative by IDF, in sung order; Deezer's plain search
+  matches lyric text, but only as an exact phrase). A window that finds nothing is retried with its first
+  and its last 5 words (a misheard word sits at one end or in the middle), most informative window first,
+  within 12 requests per query. Title-like phrases (n-grams favoured when repeated, as choruses repeat the
+  title) are searched with the windows when the transcript repeats a phrase, else only as a last resort
+  when every window and retry found nothing, keeping tracks whose whole title was sung. LRCLIB title search
+  is a fallback: it runs only when the other candidates, once verified, matched nothing (< 0.5) and the
+  transcript repeats a phrase (else its status says "no repeated phrase"). Optional keyed sources: Genius
+  search (`MELODYAI_GENIUS_TOKEN`) and Claude (`MELODYAI_ANTHROPIC_API_KEY`). Lyrics of proposed songs
+  come from the index, else from LRCLIB (`/api/get`, then `/api/search`), at most 7 per query, best
+  candidates first (proposed by several windows or high up, title sung, popular), none after 3 once one
+  aligns ≥ 0.9.
+* **Verification**: every candidate, whatever proposed it, is aligned against its real lyrics (from the
+  index, else LRCLIB) with the scoring of section 6 plus two options:
+  * `phonetic`: token similarity = max(ratio(a, b), 0.95·ratio(phon(a), phon(b))), with a
+    language-agnostic phonetic key (b/v, s/z/c, ll/y, silent h, qu/k, ph/f, ck/k, doubled letters…);
+  * `chunked`: lines (or windows of 4–12 tokens) are also aligned on their own, and coverage =
+    max(whole-query coverage, 0.9 × weighted mean of chunk coverages). Chunks with little informative
+    weight are not scored on their own, so text made of common words cannot add up coverage.
+* **Grouping**: records are merged only with evidence that they are one song: 70 % of the distinct lines
+  of the shorter lyrics are found in the other (fuzz ratio ≥ 85; any titles, compared when the scores are
+  within 0.15); or the same normalised title and at least 30 % and 3 shared lines (two LRCLIB
+  transcriptions of one song often share only 30–65 %); or the same title, one of them version-marked
+  (karaoke, live, cover…, or a title that differs only by a decoration such as "(Acousique)" or
+  "(Spanish Mix)") and the same lines matched; or the same title and both hold the sung lines almost
+  verbatim (alignment ≥ 0.95, matched lines ≥ 90 % similar: a partly translated cover); or a medley /
+  mashup ("A / B / C", "Mashup", "Megamix", "Mix 4", "Halftime") that matched the same lines (≥ 0.85),
+  which never stands for the song itself. A group that shares its lyrics is shown with its
+  best alignment by the most popular member that aligns within 0.15 of it or is more than twice as popular
+  as the best-aligned member. In a group of version-marked records the more popular one wins unless it
+  aligns more than 0.03 worse, and keeps its own alignment. An unpopular best match (rank < 300,000) also
+  gets the most popular Deezer recording with its title by another artist verified, which joins only if
+  it aligns about as well (0.05) or shares the lyrics.
+* **Ranking**: alignment score + `0.03 · min(1, log10(1 + deezer_rank) / 6)` (popularity only breaks
+  near-ties). A best match that is partial (< 0.9), rests on at most 2 matched informative words and
+  leads the next song by less than 0.2 is first capped at 0.55 or, if higher, just enough to stay first
+  after the popularity tie-break (a lead of 0.001): short generic lines align partly with many songs.
+* **Decision**: section 7's rule with the `world` thresholds (`configs/calibration.json`: accept 0.62,
+  margin 0.07, uncertain 0.45, the zero-false-match fit on 100 real songs; `DEFAULT_THRESHOLDS["world"]`
+  is the fallback), on at least 5 candidates so that the margin has a runner-up.
+* **Resolution against the local engines**: a local `match` backed by lyrics or a fingerprint wins.
+  Otherwise a world `match` wins, then a local melody-only `match`. Otherwise the world list wins if its
+  decision is at least as good and its top score at least as high. The world list is always returned as
+  `engines.world`.
+* **Learning**: verified songs scoring ≥ 0.5 are added to the index (`source = "lookup"`), only while the
+  recognition history is kept.

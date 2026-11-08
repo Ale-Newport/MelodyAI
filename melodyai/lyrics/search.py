@@ -7,7 +7,8 @@ Pipeline
    - trigram index for misspelled / mis-transcribed words (substring matches).
    For small catalogs (<= ``exhaustive_limit`` songs) all songs are scored.
 2. **Fuzzy local alignment** of the query tokens against each candidate's token
-   sequence: Smith-Waterman where a token pair scores by RapidFuzz similarity,
+   sequence (:func:`melodyai.lyrics.align.align_lyrics`, shared with the open-world index):
+   Smith-Waterman where a token pair scores by RapidFuzz similarity,
    weighted by the IDF of the query token (rare words matter more than "love" or "the").
    This tolerates substituted, missing and extra words while requiring the matched words
    to appear *in order and close together* -- the key protection against two songs
@@ -26,11 +27,8 @@ import threading
 from collections import Counter
 from dataclasses import dataclass, field
 
-import numpy as np
-from rapidfuzz import fuzz, process
-
+from melodyai.lyrics.align import align_lyrics, doc_tokens, token_weights
 from melodyai.lyrics.normalize import informative_tokens, is_stopword, normalize_text, tokenize
-from melodyai.matching.dtw import local_alignment, sw_start
 
 
 @dataclass
@@ -92,11 +90,7 @@ class LyricsIndex:
             self._add_doc(sid, items[0][0], [t for _, t in items])
 
     def _add_doc(self, song_id: str, language: str, lines: list[str]) -> None:
-        tokens, token_line = [], []
-        for i, line in enumerate(lines):
-            for t in tokenize(line):
-                tokens.append(t)
-                token_line.append(i)
+        tokens, token_line = doc_tokens(lines)
         doc = _Doc(song_id, language, lines, tokens, token_line, normalize_text(" ".join(lines)))
         self.docs[song_id] = doc
         self._df.update(set(tokens))
@@ -169,29 +163,15 @@ class LyricsIndex:
             docs = [self.docs[s] for s in cand_ids if s in self.docs]
         if language:
             docs = [d for d in docs if d.language == language] or docs
-        weights = np.array([self.idf(t) * (0.3 if is_stopword(t) else 1.0) for t in q_tokens])
-        total = float(weights.sum())
-        q_norm = " ".join(q_tokens)
+        weights = token_weights(q_tokens, self.idf)
         out = []
         for doc in docs:
-            if not doc.tokens:
+            r = align_lyrics(q_tokens, weights, doc.tokens, doc.token_line, doc.lines)
+            if r is None:
                 continue
-            sim = process.cdist(q_tokens, doc.tokens, scorer=fuzz.ratio, dtype=np.float32) / 100.0
-            # Map token similarity to a match/mismatch score scaled by token weight.
-            S = np.where(sim >= 0.84, 1.0, np.where(sim >= 0.67, 0.5, -0.5)) * weights[:, None]
-            gap = 0.4 * float(np.mean(weights))
-            best, bi, bj, H = local_alignment(S, gap)
-            if best <= 0:
-                continue
-            i0, j0 = sw_start(H, S, bi, bj, gap)
-            coverage = min(1.0, best / total)
-            l0, l1 = doc.token_line[j0], doc.token_line[max(j0, bj - 1)]
-            window = normalize_text(" ".join(doc.lines[max(0, l0 - 1):l1 + 2]))
-            char_sim = fuzz.partial_ratio(q_norm, window) / 100.0 if window else 0.0
-            score = 0.8 * coverage + 0.2 * char_sim
             out.append(LyricsCandidate(
-                doc.song_id, score, coverage, char_sim, " / ".join(doc.lines[l0:l1 + 1]), (l0, l1),
-                {"query_tokens": len(q_tokens), "aligned_query_span": [int(i0), int(bi)]},
+                doc.song_id, r.score, r.coverage, r.char_similarity, r.matched_text, r.line_range,
+                {"query_tokens": len(q_tokens), "aligned_query_span": list(r.query_span)},
             ))
         out.sort(key=lambda c: -c.score)
         return out[:top_k]
