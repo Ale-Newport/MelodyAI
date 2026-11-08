@@ -15,6 +15,7 @@ frontend/.vite/
 
 # Local data (regenerable or private)
 data/store/
+data/reports/
 data/demo/audio/
 experiments/cache/
 experiments/logs/

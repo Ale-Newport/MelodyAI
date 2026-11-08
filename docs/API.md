@@ -58,8 +58,29 @@ matches: [{title, artists, album, release_date, isrc, score, score_kind, play_of
 youtube, deezer, musicbrainz}}], sent_seconds, elapsed_s}`. These results are separate from `results`
 (different catalog, different score scale).
 
+Whenever a recognition has query text (typed, or a Whisper transcript), `engines.world` holds the
+open-world search: `{status: ok|no_candidates|no_query|disabled|error, query_text, online,
+offline_reason: ""|"setting_off"|"server_offline", sources: {name: {status, n, elapsed_s, message}},
+candidates: [...], decision, elapsed_s}`. When it decides the answer, `resolved_mode` is
+`"lyrics_online"` and `results[]` holds entries with `song_id = "world:<id>"`, a `song` with
+`reference_type: "online"`, `cover_url`, `deezer_id` and `links: {deezer, spotify, youtube}`, and
+`engines.world: {score, coverage, matched_text, line_range, sources}`. See [OPEN_WORLD.md](OPEN_WORLD.md).
+
 Errors: `400` empty file / invalid id, `413` file too large, `422` undecodable or too long/short
 audio, unknown algorithm, invalid parameters.
+
+## Open-world search
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/world/status` | World index size and bytes, online search enabled / server online, sources (`name, label, online, requires_key, available`), last sync, presets, a sync running in another process |
+| POST | `/api/world/search` | JSON `{q, language?, top_k?}`: search songs by words. The words travel in the body, never in the URL. Returns the `engines.world` shape above |
+| POST | `/api/world/sync` | JSON `{preset: quick\|standard\|large, limit?}` → background job (`kind = "world_sync"`); `409` if a sync is already running (also in another process), `503` if the server is offline |
+| GET | `/api/world/songs?q=&offset=&limit=` | Songs of the world index (metadata only, no lyrics), most popular first |
+| GET | `/api/world/preview/{deezer_id}` | `307` to a fresh 30 s Deezer preview (stored preview URLs expire) |
+
+`DELETE /api/recognitions` also purges the cached online searches and the songs learned from
+recognitions (`cached_searches`, `learned_songs`). `/api/*` refuses cross-site requests.
 
 ## Catalog
 
@@ -112,7 +133,7 @@ message, config, result, error, created_at, started_at, finished_at}`.
 
 | Method | Path | Description |
 |---|---|---|
-| GET / PUT | `/api/settings` | UI language, theme, default mode, algorithm, extractor, fusion, ASR model/language, recording limits, top-k, history, retention, `external_provider_enabled` (consent, default false), `provider_policy` (`fallback` \| `always`) |
+| GET / PUT | `/api/settings` | UI language, theme, default mode, algorithm, extractor, fusion, ASR model (`auto` default, or a size) / language, recording limits, top-k, history, retention, `online_search_enabled` (default true), `external_provider_enabled` (consent, default false), `provider_policy` (`fallback` \| `always`) |
 | GET | `/api/health` | Version, song counts, ASR readiness, neural model, device, ffmpeg, limits |
 
 ## Limits (environment variables)

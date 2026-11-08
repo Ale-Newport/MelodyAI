@@ -1,9 +1,12 @@
 """Background jobs (evaluation, training, reindexing, demo import, model download).
 
-Jobs run in a single worker thread (CPU-heavy work must not run concurrently on a
-laptop), their state is persisted in the ``jobs`` table so it survives page reloads,
-and cancellation is cooperative: the job function receives ``should_stop()``.
-Jobs left "running" by a previous server process are marked "interrupted" at start-up.
+CPU-heavy jobs run in a single worker thread (they must not run concurrently on a laptop).
+Network-bound kinds (``OWN_LANE``: the popular-songs sync, which spends hours waiting on
+LRCLIB's rate limit) get a worker of their own, so they never hold back a model download, a
+reindex or an evaluation; each such lane still runs one job at a time. Job state is persisted
+in the ``jobs`` table so it survives page reloads, and cancellation is cooperative: the job
+function receives ``should_stop()``. Jobs left "running" by a previous server process are
+marked "interrupted" at start-up.
 """
 
 from __future__ import annotations
@@ -39,9 +42,13 @@ def job_to_dict(j: Job) -> dict:
 
 
 class JobManager:
+    OWN_LANE = ("world_sync",)       # I/O-bound kinds with a worker of their own
+
     def __init__(self, Session) -> None:
         self.Session = Session
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="melodyai-job")
+        self.lanes = {kind: ThreadPoolExecutor(max_workers=1, thread_name_prefix=f"melodyai-{kind}")
+                      for kind in self.OWN_LANE}
         self._cancel: dict[str, threading.Event] = {}
         with self.Session() as db:
             for j in db.scalars(select(Job).where(Job.status.in_(["queued", "running"]))).all():
@@ -56,8 +63,12 @@ class JobManager:
             jid = j.id
         ev = threading.Event()
         self._cancel[jid] = ev
-        self.pool.submit(self._run, jid, fn, ev)
+        self.lanes.get(kind, self.pool).submit(self._run, jid, fn, ev)
         return self.get(jid)
+
+    def shutdown(self, wait: bool = False, cancel_futures: bool = True) -> None:
+        for pool in (self.pool, *self.lanes.values()):
+            pool.shutdown(wait=wait, cancel_futures=cancel_futures)
 
     def _update(self, jid: str, **fields) -> None:
         with self.Session() as db:

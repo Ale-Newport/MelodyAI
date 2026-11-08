@@ -103,6 +103,8 @@ DEFAULT_THRESHOLDS = {
     "fused": {"accept": 0.50, "margin": 0.05, "uncertain": 0.35},
     # score = verified peak-overlap fraction (true clips ~0.6-0.95, unknown recordings <~0.46)
     "fingerprint": {"accept": 0.50, "margin": 0.10, "uncertain": 0.42},
+    # open-world lyrics search (melodyai.world.search): alignment score + popularity tie-break
+    "world": {"accept": 0.62, "margin": 0.08, "uncertain": 0.45},
 }
 
 

@@ -16,13 +16,23 @@ from app.services.analysis import analyze
 from melodyai import __version__
 from melodyai.audio.io import AudioError, decode_audio, ffmpeg_available
 from melodyai.config import ROOT_DIR, experiments_dir, torch_device
-from melodyai.lyrics.asr import MODEL_SIZES, asr_available, model_status
+from melodyai.lyrics.asr import (
+    AUTO,
+    AUTO_DOWNLOAD,
+    AUTO_PREFERENCE,
+    MODEL_CHOICES,
+    MODEL_SIZES,
+    asr_available,
+    model_status,
+    resolve_model,
+)
 from melodyai.pitch.extractors import list_extractors
 
 router = APIRouter(prefix="/api", tags=["lab"])
 RUN_ID = re.compile(r"^[0-9]{8}T[0-9]{6}Z-[A-Za-z0-9_\-]{1,40}$")
 EVAL_CONFIGS = {"quick": "configs/eval_quick.yaml", "default": "configs/eval_default.yaml"}
 TRAIN_CONFIGS = {"default": "configs/train_default.yaml", "smoke": "configs/train_smoke.yaml"}
+_AUTO_ORDER = {name: i for i, name in enumerate(AUTO_PREFERENCE)}
 
 
 # ------------------------------------------------------------------ analysis
@@ -61,6 +71,21 @@ async def analyze_audio(
 
 
 # ------------------------------------------------------------------ models
+def _asr_info(state: AppState) -> dict:
+    """Whisper models. ``models`` lists the concrete sizes (incl. large-v3-turbo); the ``"auto"`` choice (best
+    cached model) is described apart, with what it resolves to, so clients can offer it as their own option."""
+    models = [model_status(m) for m in MODEL_SIZES]
+    best = next((m["name"] for m in sorted(models, key=lambda m: _AUTO_ORDER.get(m["name"], 99)) if m["cached"]),
+                None)
+    auto = {"name": AUTO, "installed_package": asr_available(), "cached": best is not None, "resolved": best,
+            "download": None if best else AUTO_DOWNLOAD}
+    active = state.engine.settings.asr_model
+    return {"package_installed": asr_available(), "models": models, "choices": list(MODEL_CHOICES), "auto": auto,
+            "active": active, "active_resolved": best if active == AUTO else active,
+            "downloads_allowed": state.settings.allow_model_download,
+            "note": "faster-whisper (CTranslate2) runs on CPU or CUDA; Apple MPS is not supported."}
+
+
 @router.get("/models", summary="Available pitch extractors, matching algorithms, ASR and neural models")
 def models(state: AppState = Depends(get_state)):
     return {
@@ -68,9 +93,7 @@ def models(state: AppState = Depends(get_state)):
         "melody_algorithms": state.engine.list_algorithms(),
         "default_algorithm": state.engine.settings.melody_algorithm,
         "fusion_methods": ["weighted", "rrf", "combmnz"],
-        "asr": {"package_installed": asr_available(), "models": [model_status(m) for m in MODEL_SIZES],
-                "active": state.engine.settings.asr_model, "downloads_allowed": state.settings.allow_model_download,
-                "note": "faster-whisper (CTranslate2) runs on CPU or CUDA; Apple MPS is not supported."},
+        "asr": _asr_info(state),
         "neural": {"active": state.neural, "error": state.neural_error,
                    "checkpoints": [{k: v for k, v in c.items() if k != "path"} for c in discover_checkpoints()]},
         "inference_device": torch_device(),
@@ -94,25 +117,35 @@ async def activate_neural(body: ActivateBody, state: AppState = Depends(get_stat
 
 
 class AsrDownloadBody(BaseModel):
-    model: str = Field("base", pattern="^(tiny|base|small|medium|large-v3)$")
+    """A concrete Whisper model size to download."""
+
+    model: str = Field("base", pattern="^(" + "|".join(map(re.escape, MODEL_SIZES)) + ")$")
+
+
+class AsrDownloadRequest(BaseModel):
+    """Download request: a concrete size, or ``"auto"`` (what the "auto" setting resolves to)."""
+
+    model: str = Field("base", pattern="^(" + "|".join(map(re.escape, MODEL_CHOICES)) + ")$")
 
 
 @router.post("/models/asr/download", summary="Download a Whisper model (must be allowed by the server)")
-def download_asr(body: AsrDownloadBody, state: AppState = Depends(get_state)):
+def download_asr(body: AsrDownloadRequest, state: AppState = Depends(get_state)):
     if not state.settings.allow_model_download:
         raise HTTPException(403, "Model downloads are disabled. Start the server with MELODYAI_ALLOW_MODEL_DOWNLOAD=1 "
                                  "or run `make asr-model`.")
     if not asr_available():
         raise HTTPException(400, "faster-whisper is not installed")
+    # "auto" = the best cached model, or the recommended one (large-v3-turbo) when nothing is cached yet.
+    target = AsrDownloadBody(model=resolve_model(body.model, allow_download=True) if body.model == AUTO else body.model)
 
     def run(progress, should_stop):
         from faster_whisper.utils import download_model
 
-        progress(0.05, f"downloading {body.model}")
-        download_model(body.model)
-        return model_status(body.model)
+        progress(0.05, f"downloading {target.model}")
+        download_model(target.model)
+        return model_status(target.model)
 
-    return state.jobs.submit("asr_download", body.model_dump(), run)
+    return state.jobs.submit("asr_download", {**target.model_dump(), "requested": body.model}, run)
 
 
 # ------------------------------------------------------------------ experiments

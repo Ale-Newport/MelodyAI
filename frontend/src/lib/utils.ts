@@ -48,3 +48,39 @@ export function externalSearchLinks(title: string, artist: string) {
     { name: "Apple Music", url: `https://music.apple.com/us/search?term=${q}` },
   ];
 }
+
+/** Returns `url` only when it is an absolute http(s) URL (never `javascript:` or other schemes). */
+export function safeUrl(url: string | null | undefined): string | null {
+  return url && /^https?:\/\//i.test(url) ? url : null;
+}
+
+const MUSIC_LINK_ORDER = ["deezer", "spotify", "youtube"] as const;
+const MUSIC_LINK_LABELS: Record<string, string> = { deezer: "Deezer", spotify: "Spotify", youtube: "YouTube" };
+
+/**
+ * Deezer / Spotify / YouTube links for an open-world song: the server's links when present (Deezer is
+ * the exact track), otherwise search URLs built from title + artist for Spotify and YouTube.
+ */
+export function musicLinks(title: string, artist: string, links?: Record<string, string> | null) {
+  const q = encodeURIComponent(`${title} ${artist}`);
+  const fallback: Record<string, string> = {
+    spotify: `https://open.spotify.com/search/${q}`,
+    youtube: `https://www.youtube.com/results?search_query=${q}`,
+  };
+  return MUSIC_LINK_ORDER.flatMap((name) => {
+    const url = safeUrl(links?.[name]) ?? fallback[name];
+    return url ? [{ name: MUSIC_LINK_LABELS[name], key: name, url }] : [];
+  });
+}
+
+/** "~20 min" / "~5 h" for approximate job durations. */
+export function approxDuration(minutes: number): string {
+  return minutes < 90 ? `~${Math.max(1, Math.round(minutes))} min` : `~${Math.round(minutes / 60)} h`;
+}
+
+/** Accepts ISO strings and epoch seconds/milliseconds. */
+export function toDate(v: string | number | null | undefined): Date | null {
+  if (v == null || v === "") return null;
+  const d = typeof v === "number" ? new Date(v < 1e12 ? v * 1000 : v) : new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}

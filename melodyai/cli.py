@@ -11,7 +11,10 @@
     melodyai evaluate-scale [--config configs/eval_scale.yaml]
     melodyai train [--config configs/train_default.yaml]
     melodyai report
-    melodyai asr-model --model base     # download a Whisper model explicitly
+    melodyai asr-model [--model large-v3-turbo]   # download a Whisper model explicitly
+    melodyai world-sync [--preset quick|standard|large] [--limit N] [--store DIR]   # popular songs' lyrics
+    melodyai world-search "some words" [--offline] [--language es]                  # open-world lyrics search
+    melodyai evaluate-world [--conditions index,online,both] [--limit N] [--no-tts] [--calibrate]
 """
 
 from __future__ import annotations
@@ -222,10 +225,121 @@ def cmd_report_scale(args) -> None:
 def cmd_asr_model(args) -> None:
     from faster_whisper.utils import download_model
 
-    print(download_model(args.model))
+    from melodyai.lyrics.asr import AUTO, AUTO_DOWNLOAD
+
+    print(download_model(AUTO_DOWNLOAD if args.model == AUTO else args.model))
+
+
+def cmd_world_sync(args) -> None:
+    """Fill the open-world lyrics index with popular songs (Deezer charts / playlists -> LRCLIB lyrics).
+
+    Resumable: run it again to continue. Ctrl-C stops after the current song (twice: abort at once).
+    """
+    import signal
+    import threading
+
+    from melodyai.config import store_dir
+    from melodyai.world.deezer import DeezerClient
+    from melodyai.world.index import WorldLyricsIndex
+    from melodyai.world.lrclib import LrclibClient
+    from melodyai.world.sync import SyncBusy, sync_popular
+    from melodyai.world.web import WebClient
+
+    store = Path(args.store).expanduser().resolve() if args.store else store_dir()
+    web = WebClient(store / "web_cache.db")
+    index = WorldLyricsIndex(store / "world.db")
+    stop = threading.Event()
+
+    def on_sigint(signum, frame):
+        if stop.is_set():
+            raise KeyboardInterrupt
+        stop.set()
+        sys.stderr.write("\nStopping after the current song (Ctrl-C again to abort)...\n")
+
+    previous = signal.signal(signal.SIGINT, on_sigint)
+    try:
+        res = sync_popular(index, LrclibClient(web), DeezerClient(web), preset=args.preset, limit=args.limit,
+                           progress=_progress, should_stop=stop.is_set, state_path=store / "world_sync.db")
+    except SyncBusy as e:
+        sys.stderr.write(f"{e}\n")
+        raise SystemExit(1) from None
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        index.close()
+        web.close()
+    if args.json:
+        print(json.dumps(res, indent=1, default=str))
+        return
+    for s in res["sources"]:
+        extra = f"  ({s['message']})" if s.get("message") else ""
+        print(f"  {s['status']:<9} {s['group']:<9} {s['tracks']:>4} tracks {s['new']:>4} new  {s['source']}{extra}")
+    print(json.dumps({k: v for k, v in res.items() if k != "sources"}, indent=1, default=str))
+
+
+def cmd_world_search(args) -> None:
+    """Open-world lyrics search for typed words: titles, artists, scores and sources (lyrics are not printed)."""
+    from melodyai.config import store_dir
+    from melodyai.engine import WORLD_TOP_K
+    from melodyai.fusion.fusion import decide
+    from melodyai.world.index import WorldLyricsIndex
+    from melodyai.world.search import WorldSearch
+    from melodyai.world.web import WebClient
+
+    store = Path(args.store).expanduser().resolve() if args.store else store_dir()
+    web = WebClient(Path(args.cache).expanduser() if args.cache else store / "web_cache.db", offline=args.offline)
+    index = WorldLyricsIndex(store / "world.db")
+    try:
+        # decide on at least WORLD_TOP_K candidates (the margin needs the runner-up), then show --top-k
+        res = WorldSearch(index, web, learn=args.learn).search(args.text, args.language,
+                                                               max(args.top_k, WORLD_TOP_K), online=not args.offline)
+        decision = decide([{"song_id": c.song_id, "score": c.score} for c in res.candidates], "world")
+        res.candidates = res.candidates[:max(1, args.top_k)]
+        if args.json:
+            out = res.to_dict()
+            for c in out["candidates"]:
+                c.pop("matched_text", None)
+            print(json.dumps({**out, "decision": decision}, indent=1, ensure_ascii=False))
+            return
+        print(f"status: {res.status}  decision: {decision['status']}  online: {res.online}  "
+              f"index: {len(index):,} songs  {res.elapsed_s:.2f}s" + (f"  ({res.message})" if res.message else ""))
+        for name, st in res.sources.items():
+            extra = f"  {st['message']}" if st.get("message") else ""
+            print(f"  source {name:<12} {st['status']:<11} n={st.get('n', 0):<3} {st.get('elapsed_s', 0):.2f}s{extra}")
+        for i, c in enumerate(res.candidates, 1):
+            print(f"  {i}. {c.title} - {c.artist}  score={c.score:.3f} (align {c.alignment_score:.3f}, "
+                  f"coverage {c.coverage:.2f}, lines {c.line_range[0]}-{c.line_range[1]})  "
+                  f"sources={','.join(c.sources)}")
+    finally:
+        index.close()
+        web.close()
+
+
+def cmd_evaluate_world(args) -> None:
+    """Real-song evaluation of the open-world recognition (see melodyai/evaluation/world_eval.py)."""
+    from melodyai.evaluation.world_eval import run_world_eval
+
+    res = run_world_eval(args.config, conditions=args.conditions, variants=args.variants, limit=args.limit,
+                         tts=not args.no_tts, calibrate=args.calibrate, seed=args.seed, online_max=args.online_max,
+                         asr_songs=args.asr_songs, label=args.label, store=args.store,
+                         markdown_path=None if args.markdown == "-" else args.markdown, progress=_progress)
+    rep = res["report"]
+    for r in rep["summary"]["overall"]:
+        print(f"  {r['condition']:<7} n={r['n']:<4} top1={r.get('top1') or 0:.2f} top5={r.get('top5') or 0:.2f} "
+              f"match_ok={r.get('match_correct') or 0:.2f} false_match={r.get('false_match') or 0:.2f}")
+    for r in rep["summary"]["negatives"]:
+        print(f"  {r['condition']:<7} negatives n={r['n']:<3} false_match={r.get('false_match') or 0:.2f}")
+    cal = rep.get("calibration")
+    if cal:
+        from melodyai.evaluation.world_eval import chosen_world_thresholds
+
+        print(f"  world thresholds: budgeted fit {cal['thresholds']}, chosen {chosen_world_thresholds(cal)}"
+              + (f" (written to {rep['calibration_written']})" if rep.get("calibration_written") else ""))
+    print(f"Saved results to {res['report_path']}" + (f" and {res['markdown_path']}" if res["markdown_path"] else ""))
 
 
 def main(argv: list[str] | None = None) -> None:
+    from melodyai.lyrics.asr import MODEL_CHOICES as ASR_MODEL_CHOICES
+
     logging.basicConfig(level=logging.WARNING)
     p = argparse.ArgumentParser(prog="melodyai")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -239,7 +353,8 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--mode", default="auto")
     s.add_argument("--algorithm")
     s.add_argument("--language")
-    s.add_argument("--asr-model", default="base")
+    s.add_argument("--asr-model", default="auto", choices=ASR_MODEL_CHOICES,
+                   help="Whisper model; auto = best downloaded model")
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_recognize)
     s = sub.add_parser("search-lyrics")
@@ -273,8 +388,40 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("report").set_defaults(fn=cmd_report)
     sub.add_parser("report-scale").set_defaults(fn=cmd_report_scale)
     s = sub.add_parser("asr-model")
-    s.add_argument("--model", default="base")
+    s.add_argument("--model", default="large-v3-turbo", choices=ASR_MODEL_CHOICES,
+                   help="auto = the recommended model (large-v3-turbo, ~1.6 GB)")
     s.set_defaults(fn=cmd_asr_model)
+    s = sub.add_parser("world-sync", help="add popular songs (charts, TikTok, classics) to the open-world index")
+    s.add_argument("--preset", default="quick", choices=("quick", "standard", "large"))
+    s.add_argument("--limit", type=int, default=None, help="keep only the N most important collected songs")
+    s.add_argument("--store", default=None, help="store directory (default: MELODYAI_STORE_DIR or data/store)")
+    s.add_argument("--json", action="store_true", help="print the full result as JSON")
+    s.set_defaults(fn=cmd_world_sync)
+    s = sub.add_parser("world-search", help="open-world lyrics search (world index + LRCLIB/Deezer) for typed words")
+    s.add_argument("text")
+    s.add_argument("--language", default=None, help="es, en, ... (default: any)")
+    s.add_argument("--offline", action="store_true", help="local world index only (no online sources)")
+    s.add_argument("--top-k", type=int, default=5)
+    s.add_argument("--learn", action="store_true", help="add verified songs to the world index (off by default)")
+    s.add_argument("--store", default=None, help="store directory (default: MELODYAI_STORE_DIR or data/store)")
+    s.add_argument("--cache", default=None, help="web cache file (default: <store>/web_cache.db)")
+    s.add_argument("--json", action="store_true", help="print the result as JSON (without matched lyrics)")
+    s.set_defaults(fn=cmd_world_search)
+    s = sub.add_parser("evaluate-world", help="real-song evaluation of the open-world recognition")
+    s.add_argument("--config", default="configs/eval_world.yaml")
+    s.add_argument("--conditions", default=None, help="comma list of index,online,both (default: from the config)")
+    s.add_argument("--variants", default=None,
+                   help="comma list of chorus,verse,line,misremembered,asr,asr_sung,negative (default: config)")
+    s.add_argument("--limit", type=int, default=None, help="evaluate a seeded sample of N songs")
+    s.add_argument("--no-tts", action="store_true", help="skip the speech-synthesis + Whisper variants")
+    s.add_argument("--calibrate", action="store_true", help="write the fitted world thresholds to calibration.json")
+    s.add_argument("--seed", type=int, default=None)
+    s.add_argument("--online-max", type=int, default=None, help="max queries per online condition (LRCLIB budget)")
+    s.add_argument("--asr-songs", type=int, default=None, help="songs with ASR variants (default: config)")
+    s.add_argument("--label", default=None, help='run label, e.g. "pilot" (shown in the report)')
+    s.add_argument("--store", default=None, help="store directory holding world.db (default: data/store)")
+    s.add_argument("--markdown", default="docs/WORLD_RESULTS.md", help='summary file ("-" to skip)')
+    s.set_defaults(fn=cmd_evaluate_world)
     args = p.parse_args(argv)
     args.fn(args)
 

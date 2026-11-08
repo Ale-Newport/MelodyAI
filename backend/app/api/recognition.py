@@ -16,9 +16,14 @@ from melodyai.catalog.models import Recognition
 router = APIRouter(prefix="/api", tags=["recognition"])
 
 
+WORLD_PREFIX = "world:"  # open-world songs (melodyai.world): the engine already built their song dict
+
+
 def _enrich(state: AppState, res: dict) -> dict:
-    meta = state.catalog.songs_by_ids([r["song_id"] for r in res["results"]])
-    for r in res["results"]:
+    """Attach catalog metadata to local results; open-world results keep the song dict the engine built."""
+    local = [r for r in res["results"] if not str(r["song_id"]).startswith(WORLD_PREFIX)]
+    meta = state.catalog.songs_by_ids([r["song_id"] for r in local]) if local else {}
+    for r in local:
         m = meta.get(r["song_id"], {})
         r["song"] = {k: m.get(k) for k in ("id", "title", "artist", "album", "year", "language", "reference_type",
                                            "duration_s", "listen_url", "license", "source")}
@@ -50,7 +55,8 @@ async def _recognize(state: AppState, mode: str, audio: UploadFile | None, text:
         try:
             res = await run_in_threadpool(
                 state.engine.recognize, decoded, text, mode, algorithm, language or us.asr_language,
-                top_k, pitch_extractor, fusion_method, True, state.providers_enabled(), us.provider_policy)
+                top_k, pitch_extractor, fusion_method, True, state.providers_enabled(), us.provider_policy,
+                online=us.online_search_enabled)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
     res = _enrich(state, res)
@@ -143,4 +149,4 @@ def clear_recognitions(state: AppState = Depends(get_state)):
     if rec_dir.exists():
         for p in rec_dir.glob("*.wav"):
             p.unlink()
-    return {"deleted": n}
+    return {"deleted": n, **state.forget_history()}

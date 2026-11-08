@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Mic, MicOff, Music4, Pause, Play, Radio, Search, ShieldAlert, Square, Upload, Wind, Type, Sparkles, Layers, X } from "lucide-react";
+import { Globe2, Lightbulb, Mic, MicOff, Music4, Pause, Play, Radio, Search, ShieldAlert, Square, Upload, Wind, Type, Sparkles, Layers, X } from "lucide-react";
 import { useRecorder } from "@/hooks/useRecorder";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { api } from "@/services/api";
@@ -12,6 +12,7 @@ import { Button, Card, CardHeader, ErrorBox, Input, Progress, SegmentedControl, 
 import { LiveWaveform } from "@/visualizations/canvas";
 import { ResultsView, Artwork } from "@/features/recognition/ResultsView";
 import { cn, formatTime } from "@/lib/utils";
+import { stopPreview, togglePreview, usePreviewActive } from "@/lib/preview";
 
 const MODE_ICONS: Record<Mode, JSX.Element> = {
   auto: <Sparkles className="h-4 w-4" />,
@@ -52,9 +53,10 @@ function MicButton({ state, level, onClick, disabled }: { state: "idle" | "recor
 
 function PracticePanel() {
   const { data } = useQuery({ queryKey: ["songs", ""], queryFn: () => api.songs() });
-  const [playing, setPlaying] = useState<string | null>(null);
-  const audio = useRef<HTMLAudioElement | null>(null);
-  useEffect(() => () => audio.current?.pause(), []);
+  // Shared player: a result preview and a practice melody never play at the same time.
+  const active = usePreviewActive();
+  const playing = active?.startsWith("song:") ? active.slice(5) : null;
+  useEffect(() => () => stopPreview(), []);
   const songs = (data?.items ?? []).filter((s) => s.index_status === "indexed").slice(0, 48);
   if (!data) return null;
   if (!songs.length)
@@ -63,13 +65,7 @@ function PracticePanel() {
         The catalog is empty. <Link to="/library" className="text-accent hover:underline">Import the demo catalog</Link> to start.
       </Card>
     );
-  const toggle = (id: string) => {
-    audio.current?.pause();
-    if (playing === id) return setPlaying(null);
-    audio.current = new Audio(api.songAudioUrl(id));
-    audio.current.onended = () => setPlaying(null);
-    audio.current.play().then(() => setPlaying(id)).catch(() => setPlaying(null));
-  };
+  const toggle = (id: string) => togglePreview(`song:${id}`, api.songAudioUrl(id));
   return (
     <Card>
       <CardHeader title="Practice with the catalog" subtitle="Listen to a melody, then hum or whistle any part of it — the chorus in the middle works too." />
@@ -122,6 +118,10 @@ function History() {
 export default function RecognizePage() {
   const { t, settings } = useAppSettings();
   const qc = useQueryClient();
+  // Words leave the server only when the setting is on *and* the server is online (not MELODYAI_OFFLINE).
+  const worldStatus = useQuery({ queryKey: ["world-status"], queryFn: api.worldStatus, retry: false, staleTime: 60_000 });
+  const searchesOnline = settings.online_search_enabled && worldStatus.data?.online_enabled !== false;
+  const keyedSources = (worldStatus.data?.sources ?? []).filter((s) => s.requires_key && s.available && s.online).map((s) => s.label.split(" (")[0]);
   const [mode, setMode] = useState<Mode>(settings.default_mode);
   const [text, setText] = useState("");
   const [result, setResult] = useState<RecognitionResult | null>(null);
@@ -200,6 +200,12 @@ export default function RecognizePage() {
           />
         </div>
         <p className="mt-2 text-xs text-muted">{t(`mode.${mode}.hint` as any)}</p>
+        {mode !== "clip" && (
+          <p className="mx-auto mt-3 flex max-w-xl items-start justify-center gap-1.5 rounded-xl border border-accent2/25 bg-accent2/5 px-3 py-2 text-left text-xs text-fg/90">
+            <Lightbulb className="mt-px h-3.5 w-3.5 shrink-0 text-accent2" />
+            {t("rec.tip")}
+          </p>
+        )}
 
         <div className="mt-4 flex flex-col items-center">
           <MicButton state={busy ? "busy" : recording ? "recording" : "idle"} level={rec.level} onClick={() => (recording ? rec.stop() : (setResult(null), rec.start()))} />
@@ -261,6 +267,13 @@ export default function RecognizePage() {
             {settings.provider_policy === "always" ? "Every recording" : "Recordings not found locally"} are also sent (≤12 s) to the licensed catalog provider.
           </p>
         )}
+        {searchesOnline && (
+          <p className="mx-auto mt-3 flex max-w-xl items-center justify-center gap-1.5 text-xs text-muted">
+            <Globe2 className="h-3.5 w-3.5 shrink-0" />
+            {t("rec.onlinePrivacy")}
+            {keyedSources.length > 0 && ` ${t("set.online.privacyKeyed", { sources: keyedSources.join(", ") })}`}
+          </p>
+        )}
         {settings.retention === "keep_with_consent" && (
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted">
             <input type="checkbox" checked={retain} onChange={(e) => setRetain(e.target.checked)} /> Keep this recording on this computer (consent)
@@ -275,7 +288,7 @@ export default function RecognizePage() {
               <div>
                 <div className="font-medium">{t("rec.processing")}</div>
                 <div className="mt-1 text-xs text-muted">
-                  {[t("rec.stage.decode"), t("rec.stage.pitch"), t("rec.stage.match"), t("rec.stage.rank")].join(" → ")}
+                  {[t("rec.stage.decode"), t("rec.stage.pitch"), t("rec.stage.match"), ...(searchesOnline ? [t("rec.stage.online")] : []), t("rec.stage.rank")].join(" → ")}
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={cancel}>
@@ -290,7 +303,7 @@ export default function RecognizePage() {
         {result && !busy && <ResultsView result={result} onAgain={() => { setResult(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} />}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
         <PracticePanel />
         <History />
       </div>
