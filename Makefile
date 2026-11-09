@@ -11,6 +11,7 @@ PRESET ?= quick
 
 .PHONY: help setup setup-min demo-data dev backend frontend test test-fast test-frontend evaluate evaluate-quick \
         evaluate-scale evaluate-world train train-smoke report lint format build asr-model ingest world-sync lakh \
+        demo-site pages \
         clean
 
 help:
@@ -72,6 +73,12 @@ evaluate-world: ## Real-song open-world (lyrics) evaluation -> data/reports/, do
 
 ingest: ## Parallel, resumable bulk import of a licensed collection: make ingest DIR=/path/to/music
 	$(BIN)/python -m melodyai.cli ingest "$(DIR)"
+
+demo-site: ## Capture the static GitHub Pages demo from a running API (make backend) -> frontend/public/demo
+	$(BIN)/python scripts/build_demo_site.py
+
+pages: ## Build the static demo site (as deployed to GitHub Pages) -> frontend/dist
+	cd frontend && npm run build:pages
 
 report: ## Regenerate docs/RESULTS.md from the latest benchmark run
 	$(BIN)/python -m melodyai.cli report

@@ -9,6 +9,7 @@ import { fileToWav } from "@/lib/wav";
 import { Badge, Button, Card, CardHeader, ErrorBox, Progress, Select, Stat } from "@/components/ui/primitives";
 import { AlignedContours, Chromagram, CostMatrix, LiveWaveform, PianoRoll, PitchContour, Spectrogram, Waveform } from "@/visualizations/canvas";
 import { cn, fixed, formatTime, pct } from "@/lib/utils";
+import { DEMO } from "@/lib/demo";
 
 const LAYERS = [
   { id: "waveform", label: "Waveform" },
@@ -70,10 +71,17 @@ export default function ExplorerPage() {
             <Select value={songId} onValueChange={setSongId} ariaLabel="Reference song" options={[{ value: "auto", label: "Best melody match" }, ...(songs.data?.items ?? []).filter((s) => s.index_status === "indexed").map((s) => ({ value: s.id, label: s.title }))]} />
           </div>
           <div className="ml-auto flex gap-2">
-            <Button variant={recording ? "danger" : "primary"} onClick={() => (recording ? rec.stop() : rec.start())} disabled={m.isPending}>
-              {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {recording ? `Stop (${formatTime(rec.elapsed)})` : "Record"}
-            </Button>
+            {DEMO ? (
+              // The static demo cannot analyse audio: it shows the captured analysis of an example hum.
+              <Button variant="primary" onClick={() => m.mutate(new Blob())} disabled={m.isPending}>
+                <AudioWaveform className="h-4 w-4" /> Analyse an example hum
+              </Button>
+            ) : (
+              <Button variant={recording ? "danger" : "primary"} onClick={() => (recording ? rec.stop() : rec.start())} disabled={m.isPending}>
+                {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {recording ? `Stop (${formatTime(rec.elapsed)})` : "Record"}
+              </Button>
+            )}
             <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={async (e) => {
               const f = e.target.files?.[0];
               if (!f) return;
@@ -81,19 +89,21 @@ export default function ExplorerPage() {
               setAudio(w);
               m.mutate(w);
             }} />
-            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={m.isPending || recording}>
-              <Upload className="h-4 w-4" /> Upload
-            </Button>
+            {!DEMO && (
+              <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={m.isPending || recording}>
+                <Upload className="h-4 w-4" /> Upload
+              </Button>
+            )}
             {audio && !recording && (
               <Button variant="ghost" onClick={() => m.mutate(audio)} disabled={m.isPending}>Re-analyse</Button>
             )}
           </div>
         </div>
         {recording && <div className="mt-4"><LiveWaveform analyser={rec.analyser} active height={48} /></div>}
-        {rec.error && <p className="mt-3 text-sm text-bad">{rec.error}</p>}
+        {rec.error && <p className="mt-3 text-sm text-brand">{rec.error}</p>}
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Visible layers">
           {LAYERS.map((l) => (
-            <button key={l.id} onClick={() => toggle(l.id)} aria-pressed={layers.has(l.id)} className={cn("rounded-full border px-3 py-1 text-xs transition-colors", layers.has(l.id) ? "border-accent/50 bg-accent/15 text-fg" : "border-border text-muted hover:text-fg")}>
+            <button key={l.id} onClick={() => toggle(l.id)} aria-pressed={layers.has(l.id)} className={cn("rounded-md border px-2.5 py-1 text-xs transition-colors", layers.has(l.id) ? "border-brand/50 bg-brand/10 text-fg" : "border-border text-muted hover:text-fg")}>
               {l.label}
             </button>
           ))}
@@ -105,7 +115,7 @@ export default function ExplorerPage() {
       {!a && !m.isPending && (
         <Card className="flex flex-col items-center gap-3 px-6 py-16 text-center text-muted">
           <AudioWaveform className="h-10 w-10" />
-          <p>Record or upload a hummed, whistled or sung melody to see its waveform, spectrum, pitch, notes and alignment.</p>
+          <p>{DEMO ? "Analyse the example hum" : "Record or upload a hummed, whistled or sung melody"} to see its waveform, spectrum, pitch, notes and alignment.</p>
         </Card>
       )}
 
@@ -119,7 +129,7 @@ export default function ExplorerPage() {
             <Stat label="Notes" value={a.notes.length} />
             <Stat label="Pitch time" value={`${fixed((a.timings.pitch_s ?? 0) * 1000, 0)} ms`} />
           </div>
-          {!a.informative && <p className="text-sm text-warn">Not enough stable pitched content for melody matching (need ≈1.5 s voiced and ≥3 notes).</p>}
+          {!a.informative && <p className="text-sm text-brand">Not enough stable pitched content for melody matching (need ≈1.5 s voiced and ≥3 notes).</p>}
 
           {layers.has("waveform") && (
             <Card><CardHeader title="Waveform" subtitle="Min/max envelope" /><div className="p-4"><Waveform min={a.waveform.min} max={a.waveform.max} duration={a.waveform.duration_s} /></div></Card>
@@ -148,8 +158,8 @@ export default function ExplorerPage() {
               <div className="flex flex-wrap gap-1.5 p-4 font-mono text-xs">
                 {a.notes.map((n, i) => (
                   <span key={i} className="flex items-center gap-1.5">
-                    <Badge tone="accent" title={`${fixed(n.onset, 2)} s, ${fixed(n.duration, 2)} s, conf ${fixed(n.confidence, 2)}`}>{n.name}</Badge>
-                    {i < a.intervals.length && <span className={cn(a.intervals[i] > 0 ? "text-ok" : a.intervals[i] < 0 ? "text-bad" : "text-muted")}>{a.intervals[i] > 0 ? "+" : ""}{fixed(a.intervals[i], 1)}</span>}
+                    <Badge tone="strong" className="font-mono" title={`${fixed(n.onset, 2)} s, ${fixed(n.duration, 2)} s, conf ${fixed(n.confidence, 2)}`}>{n.name}</Badge>
+                    {i < a.intervals.length && <span className={cn(a.intervals[i] > 0 ? "text-highlight" : a.intervals[i] < 0 ? "text-brand" : "text-muted")}>{a.intervals[i] > 0 ? "+" : ""}{fixed(a.intervals[i], 1)}</span>}
                   </span>
                 ))}
               </div>

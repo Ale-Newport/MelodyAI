@@ -7,19 +7,15 @@ import { api } from "@/services/api";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Badge, Button, Card, CardHeader, InfoTip, Stat } from "@/components/ui/primitives";
 import { AlignedContours, CostMatrix, PitchContour } from "@/visualizations/canvas";
-import { cn, externalSearchLinks, fixed, formatTime, hueFromString, musicLinks, pct, safeUrl } from "@/lib/utils";
+import { cn, externalSearchLinks, fixed, formatTime, musicLinks, pct, safeUrl } from "@/lib/utils";
 import { stopPreview, togglePreview, usePreviewFailed, usePreviewPlaying } from "@/lib/preview";
 import type { TKey } from "@/lib/i18n";
 
-export function Artwork({ id, size = 64 }: { id: string; size?: number }) {
-  const h = hueFromString(id);
+/** Placeholder art for songs without a cover: one neutral tile for every song (no per-song colours). */
+export function Artwork({ size = 64 }: { id?: string; size?: number }) {
   return (
-    <div
-      aria-hidden
-      className="relative shrink-0 overflow-hidden rounded-xl shadow-lg"
-      style={{ width: size, height: size, background: `radial-gradient(circle at 30% 25%, hsl(${h} 80% 66%), transparent 60%), linear-gradient(135deg, hsl(${h} 70% 50%), hsl(${(h + 45) % 360} 75% 28%))` }}
-    >
-      <Music2 className="absolute inset-0 m-auto text-white/80" style={{ width: size * 0.38, height: size * 0.38 }} />
+    <div aria-hidden className="relative shrink-0 rounded-xl border border-border bg-elevated" style={{ width: size, height: size }}>
+      <Music2 className="absolute inset-0 m-auto text-muted" style={{ width: size * 0.36, height: size * 0.36 }} />
     </div>
   );
 }
@@ -42,7 +38,7 @@ export function Cover({ url, id, size = 64, remote = true }: { url?: string | nu
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={() => setFailed(src)}
-      className="shrink-0 rounded-xl object-cover shadow-lg"
+      className="shrink-0 rounded-xl border border-border object-cover"
       style={{ width: size, height: size }}
     />
   );
@@ -54,7 +50,7 @@ const isWorldItem = (item: ResultItem) => !!item.engines.world || item.song_id.s
 function ScoreBar({ value }: { value: number }) {
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-elevated">
-      <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent2" style={{ width: `${Math.max(2, value * 100)}%` }} />
+      <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(2, value * 100)}%` }} />
     </div>
   );
 }
@@ -69,27 +65,27 @@ function MatchKind({ item }: { item: ResultItem }) {
   return (
     <span className="flex flex-wrap gap-1.5">
       {worldMel && (
-        <Badge tone="accent">
+        <Badge>
           <Waves className="h-3 w-3" /> {t("res.melodyOnline")} {fixed(worldMel.score, 2)}
         </Badge>
       )}
       {world && (
-        <Badge tone="info">
+        <Badge>
           <Globe2 className="h-3 w-3" /> {t("res.lyricsOnline")} {fixed(world.score, 2)}
         </Badge>
       )}
       {fp && (
-        <Badge tone="ok">
+        <Badge>
           <Radio className="h-3 w-3" /> {t("res.recording")} {fixed(fp.score, 2)}
         </Badge>
       )}
       {m && (
-        <Badge tone="accent">
+        <Badge>
           <Waves className="h-3 w-3" /> {t("res.melody")} {fixed(item.engines.melody!.score, 2)}
         </Badge>
       )}
       {l && (
-        <Badge tone="info">
+        <Badge>
           <Type className="h-3 w-3" /> {t("res.lyrics")} {fixed(item.engines.lyrics!.score, 2)}
         </Badge>
       )}
@@ -149,7 +145,7 @@ function MusicLinks({ song, small }: { song: SongSummary; small?: boolean }) {
           href={l.url}
           target="_blank"
           rel="noreferrer noopener"
-          className={cn("inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs hover:bg-elevated", small ? "text-accent" : "border border-border/60 text-fg")}
+          className={cn("inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs hover:bg-elevated", small ? "text-brand" : "border border-border/60 text-fg")}
         >
           {l.name} <ExternalLink className="h-3 w-3" />
         </a>
@@ -162,7 +158,7 @@ function MusicLinks({ song, small }: { song: SongSummary; small?: boolean }) {
 function LyricQuote({ text }: { text: string }) {
   const lines = text.split(/\s+\/\s+|\n/).map((l) => l.trim()).filter(Boolean);
   return (
-    <blockquote className="border-l-2 border-accent2/60 pl-3 text-sm italic text-fg/90">
+    <blockquote className="border-l-2 border-highlight/60 pl-3 text-sm italic text-fg/90">
       “{lines.map((l, i) => (
         <span key={i}>
           {i > 0 && <br />}
@@ -193,7 +189,7 @@ function WorldSources({ world }: { world: WorldEngineResult }) {
     <p className="border-t border-border/60 px-5 py-2 text-[11px] text-muted">
       {world.online === false ? t("res.indexOnly") : t("res.onlineSources")}:{" "}
       {entries.map(([name, s], i) => (
-        <span key={name} title={s.message || undefined} className={cn(s.status === "error" && "text-warn")}>
+        <span key={name} title={s.message || undefined} className={cn(s.status === "error" && "text-brand")}>
           {i > 0 && " · "}
           {label(name)} {s.status === "ok" ? `(${s.n})` : "✗"}
         </span>
@@ -204,10 +200,10 @@ function WorldSources({ world }: { world: WorldEngineResult }) {
   );
 }
 
-function Hint({ icon, tone, children }: { icon: ReactNode; tone?: "accent" | "warn"; children: ReactNode }) {
+function Hint({ icon, tone, children }: { icon: ReactNode; tone?: "brand" | "warn"; children: ReactNode }) {
   return (
-    <p className={cn("flex items-start gap-2 text-sm", tone === "accent" ? "text-fg" : tone === "warn" ? "text-warn" : "text-muted")}>
-      <span className={cn("mt-0.5 shrink-0", tone === "accent" ? "text-accent" : undefined)}>{icon}</span>
+    <p className={cn("flex items-start gap-2 text-sm", tone === "brand" ? "text-fg" : tone === "warn" ? "text-brand" : "text-muted")}>
+      <span className={cn("mt-0.5 shrink-0", tone === "brand" ? "text-brand" : undefined)}>{icon}</span>
       <span>{children}</span>
     </p>
   );
@@ -233,7 +229,7 @@ function AlsoFoundOnline({ world, shown, below, remote }: { world: WorldEngineRe
               </div>
               {c.matched_text && <div className="truncate text-xs italic text-fg/80">“{c.matched_text}”</div>}
             </div>
-            <Badge tone="info" title={t("res.lyricsOnline")}>
+            <Badge title={t("res.lyricsOnline")}>
               <Globe2 className="h-3 w-3" /> {fixed(c.score, 2)}
             </Badge>
             <PreviewButton compact url={c.preview_url} deezerId={c.deezer_id} title={c.title} />
@@ -270,7 +266,7 @@ export function ExternalResults({ external, localStatus }: { external: ProviderR
   const { t } = useAppSettings();
   if (!external?.length) return null;
   return (
-    <Card className={cn(localStatus !== "match" && external.some((e) => e.status === "match") && "ring-1 ring-accent2/50")}>
+    <Card className={cn(localStatus !== "match" && external.some((e) => e.status === "match") && "ring-1 ring-highlight/50")}>
       <CardHeader icon={<Globe2 className="h-4 w-4" />} title={t("res.external")}
         subtitle={t("res.externalNote", { p: external[0].provider, s: fixed(external[0].sent_seconds, 0) })} />
       <div className="space-y-3 p-5">
@@ -289,7 +285,7 @@ export function ExternalResults({ external, localStatus }: { external: ProviderR
                   <span className="text-xs text-muted" title={m.score_kind}>{m.score_kind.includes("70-100") ? fixed(m.score, 0) : fixed(m.score, 2)}</span>
                   <span className="flex gap-1">
                     {Object.entries(m.links).map(([k, url]) => (
-                      <a key={k} href={url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-accent hover:bg-elevated">
+                      <a key={k} href={url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-brand hover:bg-elevated">
                         {LINK_LABELS[k] ?? k} <ExternalLink className="h-3 w-3" />
                       </a>
                     ))}
@@ -320,9 +316,9 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
   const d = result.decision;
   const status = result.status;
   const statusUi = {
-    match: { icon: CheckCircle2, tone: "ok" as const, text: t("res.match") },
-    uncertain: { icon: HelpCircle, tone: "warn" as const, text: t("res.uncertain") },
-    no_match: { icon: AlertTriangle, tone: "bad" as const, text: t("res.no_match") },
+    match: { icon: CheckCircle2, tone: "highlight" as const, text: t("res.match") },
+    uncertain: { icon: HelpCircle, tone: "brand" as const, text: t("res.uncertain") },
+    no_match: { icon: AlertTriangle, tone: "neutral" as const, text: t("res.no_match") },
   }[status];
   const StatusIcon = statusUi.icon;
   const lyr = result.engines.lyrics;
@@ -357,11 +353,11 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
   const remoteArt = settings.online_search_enabled && world?.online !== false;
   const worldError = world?.status === "error" ? (WORLD_ERRORS[world.message] ? t(WORLD_ERRORS[world.message]) : t("res.err.unexpected")) : "";
   const hints = status === "match" ? [] : [
-    noSpeech && <Hint key="sing" icon={<Mic className="h-4 w-4" />} tone="accent">{t("res.singWords")}</Hint>,
+    noSpeech && <Hint key="sing" icon={<Mic className="h-4 w-4" />} tone="brand">{t("res.singWords")}</Hint>,
     status === "no_match" && offlineReason === "setting_off" && (
       <Hint key="off" icon={<Globe2 className="h-4 w-4" />}>
         {t("res.onlineOff")}{" "}
-        <Link to="/settings" className="text-accent hover:underline">{t("res.openSettings")}</Link>
+        <Link to="/settings" className="text-brand hover:underline">{t("res.openSettings")}</Link>
       </Hint>
     ),
     status === "no_match" && offlineReason === "server_offline" && <Hint key="server" icon={<Globe2 className="h-4 w-4" />}>{t("res.serverOffline")}</Hint>,
@@ -379,9 +375,9 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="space-y-5">
       <Card className="overflow-hidden">
-        <div className={cn("flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-3", status === "match" ? "bg-ok/5" : status === "uncertain" ? "bg-warn/5" : "bg-bad/5")}>
+        <div className={cn("flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-3", status === "match" ? "bg-highlight/5" : status === "uncertain" ? "bg-brand/5" : "bg-elevated/50")}>
           <div className="flex items-center gap-2">
-            <StatusIcon className={cn("h-5 w-5", { "text-ok": status === "match", "text-warn": status === "uncertain", "text-bad": status === "no_match" })} />
+            <StatusIcon className={cn("h-5 w-5", { "text-highlight": status === "match", "text-brand": status === "uncertain", "text-muted": status === "no_match" })} />
             <span className="font-medium" role="status">{statusUi.text}</span>
             {d.confidence && <Badge tone={statusUi.tone}>{t(`res.confidence.${d.confidence}` as TKey)}</Badge>}
           </div>
@@ -397,7 +393,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
 
         {heard && (
           <div className="flex items-start gap-2 border-b border-border/60 px-5 py-3 text-sm">
-            <Mic className="mt-0.5 h-4 w-4 shrink-0 text-accent2" />
+            <Mic className="mt-0.5 h-4 w-4 shrink-0 text-highlight" />
             <p>
               <span className={cn(noSpeech && "text-muted")} title={noSpeech ? tr?.reason || lyr?.reason : undefined}>{heard}</span>
               {tr?.model && (
@@ -437,7 +433,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
                   <PlayButton item={top} />
                   <PreviewButton url={top.song.preview_url} deezerId={top.song.deezer_id} title={top.song.title} />
                   {top.song.listen_url && (
-                    <a className="inline-flex items-center gap-1 text-sm text-accent hover:underline" href={top.song.listen_url} target="_blank" rel="noreferrer noopener">
+                    <a className="inline-flex items-center gap-1 text-sm text-brand hover:underline" href={top.song.listen_url} target="_blank" rel="noreferrer noopener">
                       Open <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   )}
@@ -488,7 +484,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
         {hints.length > 0 && <div className="space-y-2 border-t border-border/60 px-5 py-3">{hints}</div>}
         {world && world.status !== "disabled" && world.status !== "no_query" && <WorldSources world={world} />}
         {result.warnings?.length > 0 && (
-          <div className="border-t border-border/60 px-5 py-3 text-xs text-warn">{result.warnings.join(" ")}</div>
+          <div className="border-t border-border/60 px-5 py-3 text-xs text-brand">{result.warnings.join(" ")}</div>
         )}
       </Card>
 
@@ -532,7 +528,7 @@ export function ResultsView({ result, onAgain }: { result: RecognitionResult; on
             <div className="p-4">
               <AlignedContours alignment={result.alignment} />
               <div className="mt-2 flex gap-4 text-xs text-muted">
-                <span className="flex items-center gap-1"><span className="h-0.5 w-4 bg-accent" /> your query (warped)</span>
+                <span className="flex items-center gap-1"><span className="h-0.5 w-4 bg-brand" /> your query (warped)</span>
                 <span className="flex items-center gap-1"><span className="h-1 w-4 bg-muted/70" /> reference melody</span>
               </div>
             </div>

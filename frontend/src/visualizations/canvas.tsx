@@ -88,10 +88,7 @@ export function LiveWaveform({ analyser, active, height = 96 }: { analyser: Muta
         history.push(Math.min(1, peak * 1.6));
         if (history.length > w / 3) history.shift();
       }
-      const grad = ctx.createLinearGradient(0, 0, w, 0);
-      grad.addColorStop(0, cssColor("accent"));
-      grad.addColorStop(1, cssColor("accent2"));
-      ctx.fillStyle = grad;
+      ctx.fillStyle = cssColor("highlight");
       const n = history.length;
       for (let i = 0; i < n; i++) {
         const v = Math.max(0.02, history[i]) * (h / 2 - 2);
@@ -118,7 +115,7 @@ export function Waveform({ min, max, duration, height = 120 }: { min: number[]; 
       draw={(ctx, w, h) => {
         const n = max.length;
         const mid = (h - PAD.b) / 2;
-        ctx.fillStyle = cssColor("accent2", 0.85);
+        ctx.fillStyle = cssColor("highlight", 0.85);
         for (let i = 0; i < n; i++) {
           const x = PAD.l + (i / n) * (w - PAD.l - PAD.r);
           ctx.fillRect(x, mid - max[i] * mid, Math.max(1, (w - PAD.l) / n), (max[i] - min[i]) * mid || 1);
@@ -130,15 +127,17 @@ export function Waveform({ min, max, duration, height = 120 }: { min: number[]; 
 }
 
 /* ------------------------------------------------------------------ spectrogram */
-const MAGMA = [
-  [0, 0, 4], [28, 16, 68], [79, 18, 123], [129, 37, 129], [181, 54, 122], [229, 80, 100], [251, 135, 97], [254, 194, 135], [252, 253, 191],
+// Single-hue sequential map in the brand violet (dark → violet → near white), the same in both themes so
+// that luminance always grows with the value; the cyan pitch / warping path stays readable on top of it.
+const SEQUENTIAL = [
+  [10, 9, 16], [30, 22, 58], [58, 40, 118], [99, 70, 190], [139, 108, 236], [167, 139, 250], [204, 188, 252], [244, 240, 255],
 ];
 function colormap(v: number): [number, number, number] {
-  const x = Math.max(0, Math.min(1, v)) * (MAGMA.length - 1);
+  const x = Math.max(0, Math.min(1, v)) * (SEQUENTIAL.length - 1);
   const i = Math.floor(x);
   const f = x - i;
-  const a = MAGMA[i];
-  const b = MAGMA[Math.min(i + 1, MAGMA.length - 1)];
+  const a = SEQUENTIAL[i];
+  const b = SEQUENTIAL[Math.min(i + 1, SEQUENTIAL.length - 1)];
   return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
 }
 
@@ -247,13 +246,13 @@ export function PitchContour({ track, notes, height = 220, showConfidence = true
         if (showConfidence) {
           // voicing probability as a band along the bottom
           track.times.forEach((t, i) => {
-            ctx.fillStyle = cssColor(track.voiced[i] ? "ok" : "bad", 0.15 + 0.6 * track.voiced_prob[i]);
+            ctx.fillStyle = cssColor(track.voiced[i] ? "viz-voiced" : "viz-unvoiced", 0.15 + 0.6 * track.voiced_prob[i]);
             ctx.fillRect(X(t), h - PAD.b - 4, Math.max(1, pw / track.times.length), 4);
           });
         }
         if (showNotes && notes) {
-          ctx.fillStyle = cssColor("accent", 0.28);
-          ctx.strokeStyle = cssColor("accent", 0.8);
+          ctx.fillStyle = cssColor("brand", 0.28);
+          ctx.strokeStyle = cssColor("brand", 0.8);
           for (const n of notes) {
             const x = X(n.onset);
             const y = Y(n.midi + 0.45);
@@ -261,7 +260,7 @@ export function PitchContour({ track, notes, height = 220, showConfidence = true
             ctx.strokeRect(x, y, X(n.onset + n.duration) - x, Y(n.midi - 0.45) - y);
           }
         }
-        ctx.strokeStyle = cssColor("accent2");
+        ctx.strokeStyle = cssColor("highlight");
         ctx.lineWidth = 1.8;
         ctx.beginPath();
         let pen = false;
@@ -321,7 +320,7 @@ export function PianoRoll({ notes, reference, height = 220 }: { notes: NotesData
           });
         };
         if (reference) drawNotes(reference, cssColor("muted", 0.45), 1);
-        drawNotes(notes, cssColor("accent", 0.9), reference ? rowH * 0.25 : 1);
+        drawNotes(notes, cssColor("brand", 0.9), reference ? rowH * 0.25 : 1);
         axes(ctx, w, h, 0, dur);
       }}
     />
@@ -432,7 +431,7 @@ export function AlignedContours({ alignment, height = 200 }: { alignment: Alignm
         const ph = h - PAD.t - PAD.b;
         const X = (j: number) => PAD.l + ((j - lo0) / Math.max(1, hi0 - lo0)) * pw;
         const Y = (m: number) => PAD.t + ph * (1 - (m - lo) / (hi - lo));
-        ctx.fillStyle = cssColor("accent2", 0.08);
+        ctx.fillStyle = cssColor("highlight", 0.08);
         ctx.fillRect(X(a), PAD.t, X(b) - X(a), ph);
         ctx.font = "10px 'JetBrains Mono Variable', monospace";
         for (let m = lo; m <= hi; m += hi - lo > 14 ? 5 : 2) {
@@ -445,7 +444,7 @@ export function AlignedContours({ alignment, height = 200 }: { alignment: Alignm
         seg.forEach((m, k) => (k ? ctx.lineTo(X(lo0 + k), Y(m)) : ctx.moveTo(X(lo0 + k), Y(m))));
         ctx.stroke();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = cssColor("accent");
+        ctx.strokeStyle = cssColor("brand");
         ctx.beginPath();
         alignment.path.forEach(([i, j], k) => (k ? ctx.lineTo(X(j), Y(q[i])) : ctx.moveTo(X(j), Y(q[i]))));
         ctx.stroke();

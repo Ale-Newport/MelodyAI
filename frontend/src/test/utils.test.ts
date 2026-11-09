@@ -18,11 +18,3 @@ describe("utils", () => {
     expect(translate("en", "rec.min", { s: 5 })).toContain("5s");
   });
 });
-
-import { hueFromString } from "@/lib/utils";
-describe("artwork hue", () => {
-  it("spreads consecutive ids across the colour wheel", () => {
-    const hues = Array.from({ length: 12 }, (_, i) => hueFromString(`demo-${String(i).padStart(2, "0")}`));
-    expect(new Set(hues.map((h) => Math.floor(h / 30))).size).toBeGreaterThanOrEqual(6);
-  });
-});

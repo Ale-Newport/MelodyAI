@@ -60,7 +60,7 @@ function SyncJobCard({ job, onCancel }: { job: Job; onCancel: () => void }) {
     <div className="mt-3 rounded-xl border border-border/60 bg-elevated/40 p-3" aria-live="polite">
       <div className="mb-2 flex items-center justify-between gap-3 text-sm">
         <span className="flex min-w-0 items-center gap-2">
-          <Badge tone={job.status === "completed" ? "ok" : job.status === "failed" ? "bad" : job.status === "cancelled" || job.status === "interrupted" ? "warn" : "info"}>{jobStatus(t, job.status)}</Badge>
+          <Badge tone={job.status === "completed" ? "highlight" : job.status === "failed" ? "brand" : "neutral"}>{jobStatus(t, job.status)}</Badge>
           <span className="truncate text-xs text-muted" title={job.message ?? undefined}>{syncMessage(t, job.message)}</span>
         </span>
         {!done && (
@@ -70,8 +70,8 @@ function SyncJobCard({ job, onCancel }: { job: Job; onCancel: () => void }) {
         )}
       </div>
       <Progress value={job.progress} />
-      {job.status === "completed" && r && <p className="mt-2 text-xs text-ok">{t("set.popular.done", { added: r.added ?? 0, collected: r.collected ?? 0 })}</p>}
-      {job.error && <p className="mt-2 text-xs text-bad">{job.error}</p>}
+      {job.status === "completed" && r && <p className="mt-2 text-xs text-highlight">{t("set.popular.done", { added: r.added ?? 0, collected: r.collected ?? 0 })}</p>}
+      {job.error && <p className="mt-2 text-xs text-brand">{job.error}</p>}
     </div>
   );
 }
@@ -126,12 +126,12 @@ function OnlineSearchCard({ onChange }: { onChange: (patch: Partial<UserSettings
             label={t("set.online.toggle")}
           />
         </Row>
-        {settings.online_search_enabled && ws && !ws.online_enabled && <p className="px-5 pb-3 text-xs text-warn">{t("set.online.serverOff")}</p>}
+        {settings.online_search_enabled && ws && !ws.online_enabled && <p className="px-5 pb-3 text-xs text-brand">{t("set.online.serverOff")}</p>}
       </div>
 
       <div className="border-t border-border/40 px-5 pb-1 pt-4">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
-          <ListMusic className="h-4 w-4 text-accent" /> {t("set.popular.title")}
+          <ListMusic className="h-4 w-4 text-brand" /> {t("set.popular.title")}
         </h4>
         <p className="mt-0.5 text-xs text-muted">{t("set.popular.subtitle")}</p>
       </div>
@@ -161,14 +161,14 @@ function OnlineSearchCard({ onChange }: { onChange: (patch: Partial<UserSettings
                 : last
                   ? t("set.popular.lastSyncValue", { preset: presetLabel(last.preset), date: lastDate ? lastDate.toLocaleString(lang) : "–", added: (last.added ?? 0).toLocaleString(lang) })
                   : t("set.popular.never")}
-              {lastStatus && <Badge tone={lastStatus === "error" ? "bad" : "warn"}>{t(`set.popular.lastStatus.${lastStatus}` as TKey)}</Badge>}
+              {lastStatus && <Badge tone="brand">{t(`set.popular.lastStatus.${lastStatus}` as TKey)}</Badge>}
             </span>
           </Row>
           {ws && ws.sources.length > 0 && (
             <Row label={t("set.online.sources")}>
               <div className="flex flex-wrap gap-1.5">
                 {ws.sources.map((s) => (
-                  <Badge key={s.name} tone={sourceOn(s) ? "ok" : "neutral"} title={sourceHint(s)}>
+                  <Badge key={s.name} tone={sourceOn(s) ? "strong" : "neutral"} title={sourceHint(s)}>
                     {sourceLabel(s)} · {sourceState(s)}
                   </Badge>
                 ))}
@@ -196,11 +196,11 @@ function OnlineSearchCard({ onChange }: { onChange: (patch: Partial<UserSettings
               </div>
               <p className="mt-2 text-xs text-muted">{t("set.popular.note")}</p>
               {elsewhere && !running && (
-                <p className="mt-2 text-xs text-warn" role="status">
+                <p className="mt-2 text-xs text-brand" role="status">
                   {t("set.popular.runningElsewhere", { done: elsewhere.done.toLocaleString(lang), total: elsewhere.total.toLocaleString(lang) })}
                 </p>
               )}
-              {start.isError && <div className="mt-3">{startError ? <p role="alert" className="text-sm text-bad">{startError}</p> : <ErrorBox error={start.error} />}</div>}
+              {start.isError && <div className="mt-3">{startError ? <p role="alert" className="text-sm text-brand">{startError}</p> : <ErrorBox error={start.error} />}</div>}
               {job.data && (
                 <SyncJobCard job={job.data} onCancel={() => api.cancelJob(job.data!.id).then(() => qc.invalidateQueries({ queryKey: ["job", job.data!.id] }))} />
               )}
@@ -296,7 +296,7 @@ export default function SettingsPage() {
           <Row label="Fusion strategy" hint="How melody and lyrics evidence are combined"><Select value={settings.fusion_method} onValueChange={(v) => set({ fusion_method: v as any })} options={[{ value: "weighted", label: "Weighted (reliability-aware)" }, { value: "rrf", label: "Reciprocal Rank Fusion" }, { value: "combmnz", label: "CombMNZ" }]} /></Row>
           <Row label={`Results shown: ${settings.top_k}`}><Slider min={1} max={20} step={1} value={[settings.top_k]} onValueChange={([v]) => set({ top_k: v })} label="Number of results" /></Row>
           <Row label="Inference backend" hint={`Detected PyTorch device: ${models.data?.inference_device ?? "…"}. Whisper always runs on CPU/CUDA (no Apple MPS support in CTranslate2). Set MELODYAI_DEVICE to force a device.`}>
-            <Badge tone="info">{models.data?.inference_device ?? "…"}</Badge>
+            <Badge tone="strong">{models.data?.inference_device ?? "…"}</Badge>
           </Row>
         </div>
       </Card>
@@ -336,7 +336,7 @@ export default function SettingsPage() {
         <div className="mt-2">
           {(models.data?.providers ?? []).map((p) => (
             <Row key={p.name} label={p.label} hint={p.configured ? `Configured (${p.host}) · recordings: ${p.music ? "yes" : "no"} · humming: ${p.humming ? "yes" : "no"}` : p.invalid_host ? "Invalid host in MELODYAI_ACRCLOUD_HOST" : "Not configured: set MELODYAI_ACRCLOUD_HOST, _ACCESS_KEY and _ACCESS_SECRET in .env and restart the server (see docs/SCALING.md)."}>
-              <Badge tone={p.configured ? "ok" : "neutral"}>{p.configured ? "configured" : "not configured"}</Badge>
+              <Badge tone={p.configured ? "strong" : "neutral"}>{p.configured ? "configured" : "not configured"}</Badge>
             </Row>
           ))}
           <Row label="Send recordings to the provider" hint="Privacy: when enabled, up to 12 s of each recording leave this computer and are processed by the provider under its terms. Off by default.">
@@ -346,7 +346,7 @@ export default function SettingsPage() {
             <Select value={settings.provider_policy} onValueChange={(v) => set({ provider_policy: v as any })} options={[{ value: "fallback", label: "Only if not found locally" }, { value: "always", label: "Always" }]} />
           </Row>
           {settings.external_provider_enabled && !models.data?.providers_enabled && (
-            <p className="px-5 pb-4 text-xs text-warn">Enabled, but no provider is configured on the server, so nothing will be sent.</p>
+            <p className="px-5 pb-4 text-xs text-brand">Enabled, but no provider is configured on the server, so nothing will be sent.</p>
           )}
         </div>
       </Card>
