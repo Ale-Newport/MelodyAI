@@ -1,0 +1,1 @@
+{"status":"ok","version":"0.1.0","songs":48,"indexed":48,"with_lyrics":20,"asr_ready":true,"neural_model":"models/melody_encoder.pt","device":"mps","fingerprints":48,"providers_enabled":false,"ffmpeg":true,"limits":{"max_upload_mb":20.0,"max_query_seconds":60.0}}
