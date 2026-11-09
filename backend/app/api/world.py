@@ -77,7 +77,8 @@ def status(state: AppState = Depends(get_state)):
     return {"songs": stats["songs"], "online_enabled": state.online_enabled(),
             "server_online": state.world.online_capable,
             "sources": state.world.describe_sources(), "last_sync": _last_sync(state), "db_bytes": stats["bytes"],
-            "presets": preset_list(), "running_sync": _external_sync(state)}
+            "presets": preset_list(), "running_sync": _external_sync(state),
+            "melodies": state.world_melody.stats()}
 
 
 class SyncBody(BaseModel):

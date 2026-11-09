@@ -1,41 +1,37 @@
-import { type ReactNode, useId } from "react";
+import { type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AudioWaveform, FlaskConical, Library, Mic, Moon, Settings2, Sun } from "lucide-react";
+import { AudioWaveform, FlaskConical, Github, Library, Mic, Moon, Settings2, Sun } from "lucide-react";
 import { api } from "@/services/api";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { cn } from "@/lib/utils";
+import { DEMO, REPO_URL } from "@/lib/demo";
 import { Tip } from "@/components/ui/primitives";
 
 export function Logo() {
-  // Unique id per instance: a gradient defined inside a display:none copy (e.g. the hidden
-  // desktop sidebar on mobile) cannot be referenced by the visible copy.
-  const gid = `logo-${useId().replace(/:/g, "")}`;
   return (
     <div className="flex items-center gap-2.5">
-      <svg viewBox="0 0 64 64" className="h-8 w-8" aria-hidden>
-        <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="rgb(var(--accent))" />
-            <stop offset="1" stopColor="rgb(var(--accent2))" />
-          </linearGradient>
-        </defs>
-        <rect width="64" height="64" rx="16" className="fill-elevated" />
-        <path d="M10 38c6 0 6-14 12-14s6 22 12 22 6-30 12-30 6 22 8 22" fill="none" stroke={`url(#${gid})`} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      <svg viewBox="0 0 64 64" className="h-7 w-7" aria-hidden>
+        <rect width="64" height="64" rx="14" className="fill-brand" />
+        <path d="M12 38c5 0 5-13 10-13s5 20 10 20 5-27 10-27 5 20 10 20" fill="none" className="stroke-brand-fg" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="text-[17px] font-semibold tracking-tight">
-        Melody<span className="gradient-text">AI</span>
-      </span>
+      <span className="text-[16px] font-semibold tracking-tight">MelodyAI</span>
     </div>
   );
 }
 
 function HealthPill() {
-  const { data, isError } = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: 15000 });
+  const { data, isError } = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: DEMO ? false : 15000 });
+  if (DEMO)
+    return (
+      <span className="flex items-center gap-2 whitespace-nowrap rounded-md border border-border px-2.5 py-1 text-xs text-muted">
+        <span className="h-1.5 w-1.5 rounded-full bg-brand" /> Demo{data ? ` · ${data.indexed} songs` : ""}
+      </span>
+    );
   if (isError)
     return (
-      <span className="flex items-center gap-2 text-xs text-bad">
-        <span className="h-2 w-2 rounded-full bg-bad" /> API offline
+      <span className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1 text-xs text-brand">
+        <span className="h-1.5 w-1.5 rounded-full bg-brand" /> API offline
       </span>
     );
   if (!data) return null;
@@ -50,13 +46,26 @@ function HealthPill() {
         </div>
       }
     >
-      <span className="flex cursor-default items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs text-muted">
-        <span className="h-2 w-2 rounded-full bg-ok shadow-[0_0_8px] shadow-ok" />
+      <span className="flex cursor-default items-center gap-2 rounded-md border border-border px-2.5 py-1 text-xs text-muted">
+        <span className="h-1.5 w-1.5 rounded-full bg-highlight" />
         {data.indexed} songs
         {data.asr_ready && <span className="hidden sm:inline">· ASR</span>}
         {data.neural_model && <span className="hidden sm:inline">· neural</span>}
       </span>
     </Tip>
+  );
+}
+
+function DemoNotice() {
+  const { t } = useAppSettings();
+  return (
+    <p className="hidden truncate text-xs text-muted xl:block">
+      {t("demo.banner")}{" "}
+      <a href={`${REPO_URL}#quick-start`} target="_blank" rel="noreferrer noopener" className="font-medium text-fg underline decoration-border underline-offset-4 hover:decoration-fg">
+        {t("demo.runLocally")}
+      </a>{" "}
+      {t("demo.bannerTail")}
+    </p>
   );
 }
 
@@ -75,16 +84,18 @@ export function Layout({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2">
         Skip to content
       </a>
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border/60 bg-surface/40 px-4 py-6 backdrop-blur-xl lg:flex">
-        <Logo />
-        <nav className="mt-10 space-y-1" aria-label="Main">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-surface px-3 py-5 lg:flex">
+        <div className="px-2">
+          <Logo />
+        </div>
+        <nav className="mt-8 space-y-0.5" aria-label="Main">
           {nav.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === "/"}
               className={({ isActive }) =>
-                cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors", isActive ? "bg-elevated text-fg shadow-inner" : "text-muted hover:bg-elevated/60 hover:text-fg")
+                cn("flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors", isActive ? "bg-elevated font-medium text-fg [&>svg]:text-brand" : "text-muted hover:bg-elevated/60 hover:text-fg")
               }
             >
               <Icon className="h-4 w-4" />
@@ -92,16 +103,19 @@ export function Layout({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto space-y-3 text-xs text-muted">
+        <div className="mt-auto space-y-3 px-2 text-xs text-muted">
           <p className="leading-relaxed">Local processing. Recordings are not stored unless you allow it.</p>
+          <a href={REPO_URL} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1.5 hover:text-fg">
+            <Github className="h-3.5 w-3.5" /> Source on GitHub
+          </a>
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/50 bg-bg/70 px-4 py-3 backdrop-blur-xl sm:px-8">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-bg px-4 sm:px-8">
           <div className="lg:hidden">
             <Logo />
           </div>
-          <div className="hidden lg:block" />
+          <div className="hidden min-w-0 lg:block">{DEMO && <DemoNotice />}</div>
           <div className="flex items-center gap-2">
             <HealthPill />
             <button
@@ -124,9 +138,9 @@ export function Layout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
-      <nav aria-label="Main mobile" className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/60 bg-surface/90 px-2 py-2 backdrop-blur-xl lg:hidden">
+      <nav aria-label="Main mobile" className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-surface px-2 py-2 lg:hidden">
         {nav.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => cn("flex flex-col items-center gap-1 rounded-lg px-2 py-1 text-[10px]", isActive ? "text-accent" : "text-muted")}>
+          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => cn("flex flex-col items-center gap-1 rounded-lg px-2 py-1 text-[10px]", isActive ? "text-brand" : "text-muted")}>
             <Icon className="h-5 w-5" />
             {label.split(" ")[0]}
           </NavLink>

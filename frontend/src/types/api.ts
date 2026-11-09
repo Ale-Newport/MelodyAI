@@ -63,7 +63,14 @@ export interface ResultItem {
   song_id: string;
   score: number;
   song: SongSummary;
-  engines: { melody?: EngineResultRef; lyrics?: EngineResultRef; fingerprint?: EngineResultRef; world?: WorldResultRef };
+  engines: {
+    melody?: EngineResultRef;
+    lyrics?: EngineResultRef;
+    fingerprint?: EngineResultRef;
+    world?: WorldResultRef;
+    /** Open-world melody search (hummed melodies of real songs, Lakh MIDI). */
+    world_melody?: EngineResultRef & { source?: string };
+  };
   match_start?: number | null;
   match_end?: number | null;
 }
@@ -160,6 +167,29 @@ export interface WorldStatus {
   db_bytes: number;
   presets: WorldSyncPreset[];
   running_sync?: WorldRunningSync | null;
+  /** Hummed-melody index of real songs (Lakh MIDI), built with `make lakh`. */
+  melodies?: WorldMelodyStatus;
+}
+
+export interface WorldMelodyStatus {
+  built: boolean;
+  songs: number;
+  melodies: number;
+  windows?: number;
+  built_at?: string | null;
+  source?: string;
+  loaded?: boolean;
+  error?: string;
+}
+
+/** `engines.world_melody` of a recognition. */
+export interface WorldMelodyEngineResult {
+  status: "ok" | "insufficient_melody" | "error";
+  candidates: { song_id: string; title: string; artist: string; score: number; start_time?: number | null; end_time?: number | null }[];
+  decision?: { status: "match" | "uncertain" | "no_match" };
+  elapsed_s?: number;
+  source?: string;
+  message?: string;
 }
 
 /** `GET /api/world/songs`: a WorldSong without its lyrics. */
@@ -300,6 +330,8 @@ export interface RecognitionResult {
     };
     /** Present whenever there was a query text (typed or transcribed). */
     world?: WorldEngineResult;
+    /** Present when a melody was analysed and the Lakh melody index is built. */
+    world_melody?: WorldMelodyEngineResult;
   };
   alignment?: Alignment | null;
 }

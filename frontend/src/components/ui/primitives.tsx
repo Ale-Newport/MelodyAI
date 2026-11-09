@@ -6,20 +6,20 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown, Info, Loader2, X } from "lucide-react";
+import { AlertCircle, Check, ChevronDown, Info, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ Button */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        primary: "bg-gradient-to-r from-accent to-accent2 text-black shadow-lg shadow-accent/20 hover:brightness-110",
-        secondary: "bg-elevated text-fg border border-border hover:border-accent/50",
+        primary: "bg-brand text-brand-fg hover:bg-brand/90",
+        secondary: "bg-elevated text-fg border border-border hover:bg-border/50",
         ghost: "text-muted hover:text-fg hover:bg-elevated",
         outline: "border border-border text-fg hover:bg-elevated",
-        danger: "bg-bad/15 text-bad border border-bad/30 hover:bg-bad/25",
+        danger: "border border-border text-fg hover:border-brand/50 hover:text-brand",
       },
       size: { sm: "h-8 px-3 text-xs", md: "h-10 px-4", lg: "h-12 px-6 text-base", icon: "h-9 w-9" },
     },
@@ -50,7 +50,7 @@ export function CardHeader({ title, subtitle, actions, icon }: { title: React.Re
   return (
     <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
       <div className="flex items-start gap-3">
-        {icon && <div className="mt-0.5 rounded-lg bg-accent/15 p-2 text-accent">{icon}</div>}
+        {icon && <div className="mt-0.5 rounded-lg border border-border bg-elevated p-1.5 text-fg">{icon}</div>}
         <div>
           <h3 className="text-[15px] font-semibold tracking-tight">{title}</h3>
           {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
@@ -61,15 +61,14 @@ export function CardHeader({ title, subtitle, actions, icon }: { title: React.Re
   );
 }
 
-const badgeVariants = cva("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border", {
+/** Neutral by default; brand and highlight are reserved for states that need attention (a match, a problem). */
+const badgeVariants = cva("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium", {
   variants: {
     tone: {
-      neutral: "bg-elevated text-muted border-border",
-      accent: "bg-accent/15 text-accent border-accent/30",
-      ok: "bg-ok/15 text-ok border-ok/30",
-      warn: "bg-warn/15 text-warn border-warn/30",
-      bad: "bg-bad/15 text-bad border-bad/30",
-      info: "bg-accent2/15 text-accent2 border-accent2/30",
+      neutral: "border-border text-muted",
+      strong: "border-border bg-elevated text-fg",
+      brand: "border-brand/30 bg-brand/10 text-brand",
+      highlight: "border-highlight/30 bg-highlight/10 text-highlight",
     },
   },
   defaultVariants: { tone: "neutral" },
@@ -82,7 +81,7 @@ export function Badge({ className, tone, ...p }: React.HTMLAttributes<HTMLSpanEl
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(({ className, ...p }, ref) => (
   <input
     ref={ref}
-    className={cn("h-10 w-full rounded-xl border border-border bg-elevated/60 px-3 text-sm placeholder:text-muted/70 focus:border-accent/60", className)}
+    className={cn("h-10 w-full rounded-xl border border-border bg-elevated/60 px-3 text-sm placeholder:text-muted/70 focus:border-brand/60", className)}
     {...p}
   />
 ));
@@ -91,7 +90,7 @@ Input.displayName = "Input";
 export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(({ className, ...p }, ref) => (
   <textarea
     ref={ref}
-    className={cn("w-full rounded-xl border border-border bg-elevated/60 px-3 py-2 text-sm placeholder:text-muted/70 focus:border-accent/60", className)}
+    className={cn("w-full rounded-xl border border-border bg-elevated/60 px-3 py-2 text-sm placeholder:text-muted/70 focus:border-brand/60", className)}
     {...p}
   />
 ));
@@ -116,9 +115,9 @@ export function Switch({ checked, onCheckedChange, id, label }: { checked: boole
       aria-label={label}
       checked={checked}
       onCheckedChange={onCheckedChange}
-      className="relative h-6 w-11 shrink-0 rounded-full border border-border bg-elevated transition-colors data-[state=checked]:bg-accent"
+      className="relative h-6 w-11 shrink-0 rounded-full border border-border bg-elevated transition-colors data-[state=checked]:bg-brand"
     >
-      <SwitchPrimitive.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-fg shadow transition-transform data-[state=checked]:translate-x-[21px] data-[state=checked]:bg-black" />
+      <SwitchPrimitive.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-fg shadow transition-transform data-[state=checked]:translate-x-[21px] data-[state=checked]:bg-brand-fg" />
     </SwitchPrimitive.Root>
   );
 }
@@ -127,10 +126,10 @@ export function Slider({ value, onValueChange, min, max, step, label }: { value:
   return (
     <SliderPrimitive.Root value={value} onValueChange={onValueChange} min={min} max={max} step={step} className="relative flex h-5 w-full touch-none select-none items-center">
       <SliderPrimitive.Track className="relative h-1.5 grow overflow-hidden rounded-full bg-elevated">
-        <SliderPrimitive.Range className="absolute h-full bg-gradient-to-r from-accent to-accent2" />
+        <SliderPrimitive.Range className="absolute h-full bg-brand" />
       </SliderPrimitive.Track>
       {value.map((_, i) => (
-        <SliderPrimitive.Thumb key={i} aria-label={label} className="block h-4 w-4 rounded-full border-2 border-accent bg-bg shadow" />
+        <SliderPrimitive.Thumb key={i} aria-label={label} className="block h-4 w-4 rounded-full border-2 border-brand bg-bg shadow" />
       ))}
     </SliderPrimitive.Root>
   );
@@ -159,7 +158,7 @@ export function Select({ value, onValueChange, options, placeholder, className, 
             {options.map((o) => (
               <SelectPrimitive.Item key={o.value} value={o.value} disabled={o.disabled} className="relative flex cursor-pointer select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm outline-none data-[disabled]:opacity-40 data-[highlighted]:bg-elevated">
                 <SelectPrimitive.ItemIndicator className="absolute left-2">
-                  <Check className="h-4 w-4 text-accent" />
+                  <Check className="h-4 w-4 text-brand" />
                 </SelectPrimitive.ItemIndicator>
                 <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
               </SelectPrimitive.Item>
@@ -222,8 +221,8 @@ export function Dialog({ open, onOpenChange, title, description, children, wide 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <DialogPrimitive.Content className={cn("card fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 scrollbar-thin", wide ? "max-w-3xl" : "max-w-lg")}>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/60" />
+        <DialogPrimitive.Content className={cn("card fixed left-1/2 top-1/2 z-50 shadow-2xl max-h-[90vh] w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 scrollbar-thin", wide ? "max-w-3xl" : "max-w-lg")}>
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <DialogPrimitive.Title className="text-lg font-semibold">{title}</DialogPrimitive.Title>
@@ -245,9 +244,9 @@ export function Progress({ value, indeterminate, className }: { value?: number; 
   return (
     <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={indeterminate ? undefined : Math.round((value ?? 0) * 100)} className={cn("relative h-1.5 w-full overflow-hidden rounded-full bg-elevated", className)}>
       {indeterminate ? (
-        <div className="absolute inset-y-0 w-1/3 animate-indeterminate rounded-full bg-gradient-to-r from-accent to-accent2" />
+        <div className="absolute inset-y-0 w-1/3 animate-indeterminate rounded-full bg-brand" />
       ) : (
-        <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent2 transition-[width] duration-500" style={{ width: `${Math.max(0, Math.min(1, value ?? 0)) * 100}%` }} />
+        <div className="h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${Math.max(0, Math.min(1, value ?? 0)) * 100}%` }} />
       )}
     </div>
   );
@@ -260,8 +259,11 @@ export function Skeleton({ className }: { className?: string }) {
 export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const msg = error instanceof Error ? error.message : String(error);
   return (
-    <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-bad/30 bg-bad/10 p-4 text-sm text-bad">
-      <span>{msg}</span>
+    <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-border bg-elevated p-4 text-sm text-fg">
+      <span className="flex items-start gap-2">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
+        {msg}
+      </span>
       {onRetry && (
         <Button size="sm" variant="danger" onClick={onRetry}>
           Retry
@@ -273,7 +275,7 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
 
 export function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-elevated/40 px-4 py-3">
+    <div className="rounded-2xl border border-border/60 bg-elevated/40 px-4 py-3">
       <div className="label flex items-center gap-1">
         {label}
         {hint && <InfoTip content={hint} />}
@@ -290,7 +292,7 @@ export function SegmentedControl<T extends string>({ value, onChange, options, a
   ariaLabel: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="inline-flex flex-wrap justify-center gap-1 rounded-2xl border border-border bg-surface/70 p-1 backdrop-blur">
+    <div role="radiogroup" aria-label={ariaLabel} className="inline-flex flex-wrap justify-center gap-1 rounded-xl border border-border bg-elevated/50 p-1">
       {options.map((o) => (
         <button
           key={o.value}
@@ -299,8 +301,8 @@ export function SegmentedControl<T extends string>({ value, onChange, options, a
           title={o.hint}
           onClick={() => onChange(o.value)}
           className={cn(
-            "flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm transition-all",
-            value === o.value ? "bg-gradient-to-r from-accent/25 to-accent2/20 text-fg shadow-inner ring-1 ring-accent/40" : "text-muted hover:text-fg",
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors",
+            value === o.value ? "bg-surface text-fg shadow-sm ring-1 ring-border [&>svg]:text-brand" : "text-muted hover:text-fg",
           )}
         >
           {o.icon}

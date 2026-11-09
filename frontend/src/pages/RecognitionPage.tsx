@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { api } from "@/services/api";
 import { ResultsView } from "@/features/recognition/ResultsView";
 import { Button, ErrorBox, Skeleton } from "@/components/ui/primitives";
+import { DEMO } from "@/lib/demo";
 
 export default function RecognitionPage() {
   const { id = "" } = useParams();
@@ -15,7 +16,7 @@ export default function RecognitionPage() {
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
-        <Button
+        {!DEMO && <Button
           size="sm"
           variant="danger"
           onClick={async () => {
@@ -24,7 +25,7 @@ export default function RecognitionPage() {
           }}
         >
           <Trash2 className="h-4 w-4" /> Delete from history
-        </Button>
+        </Button>}
       </div>
       {q.isLoading && <Skeleton className="h-64" />}
       {q.isError && <ErrorBox error={q.error} />}

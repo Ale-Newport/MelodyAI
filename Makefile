@@ -10,7 +10,8 @@ MODEL ?= large-v3-turbo
 PRESET ?= quick
 
 .PHONY: help setup setup-min demo-data dev backend frontend test test-fast test-frontend evaluate evaluate-quick \
-        evaluate-scale evaluate-world train train-smoke report lint format build asr-model ingest world-sync \
+        evaluate-scale evaluate-world train train-smoke report lint format build asr-model ingest world-sync lakh \
+        demo-site pages \
         clean
 
 help:
@@ -73,6 +74,12 @@ evaluate-world: ## Real-song open-world (lyrics) evaluation -> data/reports/, do
 ingest: ## Parallel, resumable bulk import of a licensed collection: make ingest DIR=/path/to/music
 	$(BIN)/python -m melodyai.cli ingest "$(DIR)"
 
+demo-site: ## Capture the static GitHub Pages demo from a running API (make backend) -> frontend/public/demo
+	$(BIN)/python scripts/build_demo_site.py
+
+pages: ## Build the static demo site (as deployed to GitHub Pages) -> frontend/dist
+	cd frontend && npm run build:pages
+
 report: ## Regenerate docs/RESULTS.md from the latest benchmark run
 	$(BIN)/python -m melodyai.cli report
 
@@ -84,6 +91,10 @@ train-smoke: ## Tiny training run (seconds) to check the pipeline
 
 asr-model: ## Download a faster-whisper model (MODEL=large-v3-turbo|large-v3|medium|small|base|tiny; ~1.6 GB for turbo)
 	$(BIN)/python -m melodyai.cli asr-model --model $(MODEL)
+
+lakh: ## Download Lakh MIDI (~1.5 GB, CC-BY 4.0) and build the humming index of ~26k real songs (~1 h)
+	$(BIN)/python -m melodyai.cli lakh-download
+	$(BIN)/python -m melodyai.cli lakh-build $(if $(LIMIT),--limit $(LIMIT))
 
 world-sync: ## Add popular songs' lyrics to the open-world index (PRESET=quick|standard|large, LIMIT=N; resumable)
 	$(BIN)/python -m melodyai.cli world-sync --preset $(PRESET) $(if $(LIMIT),--limit $(LIMIT))

@@ -20,20 +20,6 @@ export function fixed(v: number | null | undefined, digits = 3): string {
   return v == null || !isFinite(v) ? "–" : v.toFixed(digits);
 }
 
-/** Deterministic hue from a string (used for generated song artwork). */
-export function hueFromString(s: string): number {
-  // FNV-1a with a final avalanche step, so ids that differ in one character get distant hues.
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  h ^= h >>> 15;
-  h = Math.imul(h, 2246822507);
-  h ^= h >>> 13;
-  return (h >>> 0) % 360;
-}
-
 const NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 export function midiName(m: number): string {
   const r = Math.round(m);

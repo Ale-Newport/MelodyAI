@@ -6,10 +6,10 @@ import type { Song } from "@/types/api";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useJob } from "@/hooks/useJob";
 import { Badge, Button, Card, Dialog, ErrorBox, Field, Input, Progress, Select, Skeleton, Stat, Textarea } from "@/components/ui/primitives";
-import { Artwork } from "@/features/recognition/ResultsView";
-import { formatTime } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
+import { DEMO } from "@/lib/demo";
 
-const STATUS_TONE = { indexed: "ok", pending: "neutral", processing: "info", error: "bad", stale: "warn" } as const;
+const STATUS_TONE = { indexed: "neutral", pending: "neutral", processing: "strong", error: "brand", stale: "brand" } as const;
 const REF_TYPES = ["midi", "monophonic_audio", "vocal_audio", "instrumental_audio", "polyphonic_audio"];
 
 function AddSongDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -109,7 +109,7 @@ function BulkDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
             {m.data.results.map((r, i) => (
               <li key={i} className="flex items-center justify-between gap-2">
                 <span className="truncate">{r.title}</span>
-                <Badge tone={r.status === "indexed" ? "ok" : r.status === "duplicate" ? "warn" : "bad"}>{r.status}{r.error ? `: ${r.error}` : ""}</Badge>
+                <Badge tone={r.status === "indexed" ? "neutral" : "brand"}>{r.status}{r.error ? `: ${r.error}` : ""}</Badge>
               </li>
             ))}
           </ul>
@@ -174,7 +174,7 @@ function EditDialog({ song, onClose }: { song: Song | null; onClose: () => void 
             <span>Status: {d.index_status} · features {d.feature_version}</span>
             <span>{d.n_notes} notes · {d.n_windows} windows · {formatTime(d.duration_s)}</span>
             <span className="truncate" title={d.content_hash}>SHA-256 {d.content_hash.slice(0, 16)}…</span>
-            {d.index_error && <span className="text-bad sm:col-span-2">{d.index_error}</span>}
+            {d.index_error && <span className="text-brand sm:col-span-2">{d.index_error}</span>}
             {typeof d.extra?.melody_method === "string" && <span className="sm:col-span-2">Melody extraction: {String(d.extra.melody_method)}</span>}
           </div>
           <Field label="Lyrics" hint={d.lyrics?.source ? `Source: ${d.lyrics.source} · License: ${d.lyrics.license ?? "–"}` : "Only add lyrics you are authorised to use."}>
@@ -243,7 +243,7 @@ export default function LibraryPage() {
           <h1 className="text-2xl font-semibold tracking-tight">{t("lib.title")}</h1>
           <p className="text-sm text-muted">Every song keeps its source, license and content hash. Indexing is incremental.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className={cn("flex flex-wrap gap-2", DEMO && "hidden")}>
           <Button variant="outline" onClick={async () => setJobId((await api.importDemo()).id)} disabled={!!running}>
             <Wand2 className="h-4 w-4" /> {t("lib.demo")}
           </Button>
@@ -266,7 +266,7 @@ export default function LibraryPage() {
             <span className="tabular text-muted">{Math.round(job.data.progress * 100)}%</span>
           </div>
           <Progress value={job.data.progress} />
-          {job.data.error && <p className="mt-2 text-sm text-bad">{job.data.error}</p>}
+          {job.data.error && <p className="mt-2 text-sm text-brand">{job.data.error}</p>}
         </Card>
       )}
 
@@ -280,8 +280,8 @@ export default function LibraryPage() {
       </div>
 
       {!!dups.data?.length && (
-        <Card className="border-warn/40 p-4">
-          <div className="flex items-center gap-2 text-sm text-warn">
+        <Card className="p-4">
+          <div className="flex items-center gap-2 text-sm text-fg">
             <Copy className="h-4 w-4" /> {dups.data.length} possible duplicate group(s) (same title+artist or composition id). Identical files are always rejected at import.
           </div>
         </Card>
@@ -319,18 +319,22 @@ export default function LibraryPage() {
                   <tr key={s.id} className="border-b border-border/40 hover:bg-elevated/30">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
-                        <button onClick={() => play(s.id)} className="relative" aria-label={`Play ${s.title}`}>
-                          <Artwork id={s.id} size={38} />
-                          <span className="absolute inset-0 grid place-items-center rounded-xl bg-black/30 opacity-0 transition-opacity hover:opacity-100">
-                            {playing === s.id ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-white" />}
-                          </span>
+                        <button
+                          onClick={() => play(s.id)}
+                          aria-label={`Play ${s.title}`}
+                          className={cn(
+                            "grid h-9 w-9 shrink-0 place-items-center rounded-lg border transition-colors",
+                            playing === s.id ? "border-brand bg-brand text-brand-fg" : "border-border bg-elevated text-muted hover:border-brand/50 hover:text-brand",
+                          )}
+                        >
+                          {playing === s.id ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                         </button>
                         <div className="min-w-0">
                           <div className="truncate font-medium">{s.title}</div>
                           <div className="truncate text-xs text-muted">
                             {s.artist}
                             {s.year ? ` · ${s.year}` : ""} · {formatTime(s.duration_s)}
-                            {s.has_lyrics && <Badge tone="info" className="ml-2 py-0">lyrics {s.lyrics_language}</Badge>}
+                            {s.has_lyrics && <Badge className="ml-2 py-0">lyrics {s.lyrics_language}</Badge>}
                           </div>
                         </div>
                       </div>
@@ -350,10 +354,10 @@ export default function LibraryPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className="flex justify-end gap-1">
+                      <div className={cn("flex justify-end gap-1", DEMO && "hidden")}>
                         <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" aria-label="Reindex" onClick={() => reindex.mutate(s.id)} disabled={reindex.isPending}><RefreshCw className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" aria-label="Delete" onClick={() => setDeleting(s)}><Trash2 className="h-4 w-4 text-bad" /></Button>
+                        <Button size="icon" variant="ghost" aria-label="Delete" onClick={() => setDeleting(s)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </td>
                   </tr>

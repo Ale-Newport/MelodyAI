@@ -223,8 +223,9 @@ def test_world_status(ctx):
     c, state, _, _ = ctx
     st = c.get("/api/world/status").json()
     assert set(st) == {"songs", "online_enabled", "server_online", "sources", "last_sync", "db_bytes", "presets",
-                       "running_sync"}
+                       "running_sync", "melodies"}
     assert st["server_online"] is True and st["running_sync"] is None
+    assert st["melodies"]["built"] is False and st["melodies"]["songs"] == 0     # no Lakh index in a fresh store
     assert st["songs"] == len(state.world_index) >= 3 and st["db_bytes"] > 0 and st["online_enabled"] is True
     names = {s["name"]: s for s in st["sources"]}
     assert {"index", "lrclib", "deezer"} <= set(names) and names["index"]["available"] is True

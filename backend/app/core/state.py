@@ -65,9 +65,15 @@ class AppState:
         self.web = WebClient(root / "web_cache.db", offline=offline_mode())
         self.world_index = WorldLyricsIndex(root / "world.db")
         self.world = WorldSearch(self.world_index, self.web)
+        # Hummed melodies of real songs (Lakh MIDI, built by `melodyai lakh-build`); loaded on first use.
+        from melodyai.world.melodies import WorldMelodyIndex
+
+        self.world_melody = WorldMelodyIndex(root / "world_melodies", meta_lookup=self.world_index.get_by_key)
         self.engine = RecognitionEngine(self.catalog.melody_index, self.catalog.lyrics_index, EngineSettings(),
                                         fp_index=self.catalog.fp_index, providers=self.providers,
-                                        world=self.world)
+                                        world=self.world, world_melody=self.world_melody)
+        if self.world_melody.built:
+            threading.Thread(target=self.world_melody.warm, name="melodyai-world-melody-load", daemon=True).start()
         self.apply_user_settings()
         self.jobs = JobManager(self.catalog.Session)
         self.recognition_slots = asyncio.Semaphore(settings.max_concurrent_recognitions)

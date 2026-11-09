@@ -10,6 +10,7 @@ import { useAppSettings } from "@/hooks/useAppSettings";
 import { fileToWav } from "@/lib/wav";
 import { Badge, Button, Card, CardHeader, ErrorBox, Field, Input, InfoTip, Progress, Select, Skeleton, Stat, Switch, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/primitives";
 import { cn, fixed, formatTime, pct } from "@/lib/utils";
+import { DEMO, DEMO_UNAVAILABLE } from "@/lib/demo";
 
 function JobCard({ job, onCancel }: { job: Job; onCancel: () => void }) {
   const done = FINISHED.includes(job.status);
@@ -17,7 +18,7 @@ function JobCard({ job, onCancel }: { job: Job; onCancel: () => void }) {
     <div className="rounded-xl border border-border/60 bg-elevated/40 p-4">
       <div className="mb-2 flex items-center justify-between gap-3 text-sm">
         <span className="flex items-center gap-2">
-          <Badge tone={job.status === "completed" ? "ok" : job.status === "failed" ? "bad" : job.status === "cancelled" ? "warn" : "info"}>{job.status}</Badge>
+          <Badge tone={job.status === "completed" ? "highlight" : job.status === "failed" ? "brand" : "neutral"}>{job.status}</Badge>
           <span className="text-muted">{job.kind}</span>
           <span className="truncate text-xs text-muted">{job.message}</span>
         </span>
@@ -28,15 +29,15 @@ function JobCard({ job, onCancel }: { job: Job; onCancel: () => void }) {
         )}
       </div>
       <Progress value={job.progress} />
-      {job.error && <p className="mt-2 text-xs text-bad">{job.error}</p>}
+      {job.error && <p className="mt-2 text-xs text-brand">{job.error}</p>}
     </div>
   );
 }
 
 function heat(v: number | undefined) {
   if (v == null) return {};
-  const h = 10 + v * 130;
-  return { background: `hsl(${h} 65% 45% / ${0.15 + 0.55 * v})` };
+  // One-hue sequential scale (brand), stronger for higher accuracy.
+  return { background: `rgb(var(--brand) / ${(0.04 + 0.4 * v * v).toFixed(3)})` };
 }
 
 function RunDetails({ m }: { m: EvalMetrics }) {
@@ -60,7 +61,7 @@ function RunDetails({ m }: { m: EvalMetrics }) {
         <Stat label="Index build" value={`${fixed(m.indexing.mean_ms_per_song, 0)} ms/song`} hint={`${m.indexing.windows} windows, ${m.indexing.window_matrix_mb} MB window matrix`} />
         <Stat label="Hardware" value={<span className="text-sm">{m.env.machine} · {m.env.cpu_count} CPU</span>} hint={`${m.env.platform} · ${m.env.memory_gb} GB · torch ${m.env.torch_version} (${m.env.torch_device})`} />
       </div>
-      <p className="rounded-xl border border-warn/30 bg-warn/5 p-3 text-xs text-warn">
+      <p className="rounded-xl border border-border bg-elevated/50 p-3 text-xs text-muted">
         Synthetic benchmark: queries are synthesised hums/whistles of original melodies. Results show robustness to controlled transformations, not accuracy on real users' recordings.
       </p>
 
@@ -80,7 +81,7 @@ function RunDetails({ m }: { m: EvalMetrics }) {
               {algs.map((a) => {
                 const x = m.melody[a];
                 return (
-                  <tr key={a} className={cn("border-t border-border/40", a === alg && "bg-accent/5")} onClick={() => setAlg(a)}>
+                  <tr key={a} className={cn("border-t border-border/40", a === alg && "bg-brand/5")} onClick={() => setAlg(a)}>
                     <td className="cursor-pointer p-2 font-medium" title={m.algorithms[a]}>{a}</td>
                     <td className="p-2">{pct(x.overall.top1, 1)}</td>
                     <td className="p-2">{pct(x.overall.top3, 1)}</td>
@@ -127,7 +128,7 @@ function RunDetails({ m }: { m: EvalMetrics }) {
                   <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} />
                   <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
                   <Line dataKey="ideal" stroke="#888" strokeDasharray="4 4" dot={false} name="perfect calibration" />
-                  <Line dataKey="acc" stroke="rgb(var(--accent))" strokeWidth={2} name="observed accuracy" />
+                  <Line dataKey="acc" stroke="rgb(var(--brand))" strokeWidth={2} name="observed accuracy" />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -143,7 +144,7 @@ function RunDetails({ m }: { m: EvalMetrics }) {
                 <YAxis dataKey="rank" type="number" domain={[1, 11]} tick={{ fontSize: 11 }} name="rank of correct song" reversed />
                 <ZAxis range={[30, 30]} />
                 <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
-                <Scatter data={scoreDist} fill="rgb(var(--accent2))" fillOpacity={0.6} />
+                <Scatter data={scoreDist} fill="rgb(var(--highlight))" fillOpacity={0.6} />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
@@ -171,7 +172,7 @@ function RunDetails({ m }: { m: EvalMetrics }) {
                   <tr key={r.query + r.algorithm} className="border-t border-border/30">
                     <td className="p-1.5 font-mono">{r.query}</td>
                     <td className="p-1.5">{r.target ?? "—"}</td>
-                    <td className={cn("p-1.5", r.target && r.top_song !== r.target && "text-bad")}>{r.top_song ?? "∅"}</td>
+                    <td className={cn("p-1.5", r.target && r.top_song !== r.target && "text-brand")}>{r.top_song ?? "∅"}</td>
                     <td className="p-1.5">{r.rank ?? "–"}</td>
                     <td className="p-1.5">{fixed(r.top_score, 3)}</td>
                     <td className="p-1.5">{fixed(r.second_score, 3)}</td>
@@ -280,8 +281,8 @@ function BenchmarksTab() {
         <div className="flex flex-wrap items-center gap-3">
           <Select className="w-80" value={sel ?? ""} onValueChange={setSel} ariaLabel="Evaluation run" placeholder="No runs yet" options={evals.map((r) => ({ value: r.run_id, label: `${r.run_id} (${r.dataset?.queries} queries)` }))} />
           <div className="ml-auto flex gap-2">
-            <Button variant="outline" onClick={() => start("quick")} disabled={!!job.data && !FINISHED.includes(job.data.status)}><Play className="h-4 w-4" /> Quick benchmark</Button>
-            <Button variant="primary" onClick={() => start("default")} disabled={!!job.data && !FINISHED.includes(job.data.status)}><Gauge className="h-4 w-4" /> Full benchmark</Button>
+            <Button variant="outline" onClick={() => start("quick")} disabled={DEMO || (!!job.data && !FINISHED.includes(job.data.status))}><Play className="h-4 w-4" /> Quick benchmark</Button>
+            <Button variant="primary" onClick={() => start("default")} disabled={DEMO || (!!job.data && !FINISHED.includes(job.data.status))}><Gauge className="h-4 w-4" /> Full benchmark</Button>
           </div>
         </div>
         <p className="mt-3 text-xs text-muted">Quick ≈ 1–2 min (16 songs). Full ≈ 25 min (48 songs, 10 conditions, extractors, lyrics, ASR, fusion, polyphonic). Runs in the background; you can leave this page.</p>
@@ -324,7 +325,7 @@ function CompareTab() {
       <Card className="p-5">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Algorithms to compare">
           {algs.map((a) => (
-            <button key={a.name} title={a.label} aria-pressed={selected.includes(a.name)} onClick={() => setSelected((s) => (s.includes(a.name) ? s.filter((x) => x !== a.name) : [...s, a.name]))} className={cn("rounded-full border px-3 py-1 text-xs", selected.includes(a.name) ? "border-accent/50 bg-accent/15" : "border-border text-muted")}>
+            <button key={a.name} title={a.label} aria-pressed={selected.includes(a.name)} onClick={() => setSelected((s) => (s.includes(a.name) ? s.filter((x) => x !== a.name) : [...s, a.name]))} className={cn("rounded-md border px-2.5 py-1 text-xs transition-colors", selected.includes(a.name) ? "border-brand/50 bg-brand/10 text-fg" : "border-border text-muted hover:text-fg")}>
               {a.name}
             </button>
           ))}
@@ -333,13 +334,14 @@ function CompareTab() {
           <div className="w-36"><div className="label mb-1">Mode</div><Select value={mode} onValueChange={setMode} ariaLabel="Mode" options={[{ value: "hum", label: "Hum" }, { value: "whistle", label: "Whistle" }]} /></div>
           <div className="w-52"><div className="label mb-1">Pitch extractor</div><Select value={extractor} onValueChange={setExtractor} ariaLabel="Extractor" options={(models.data?.pitch_extractors ?? []).map((e) => ({ value: e.name, label: e.label, disabled: !e.available }))} /></div>
           <div className="ml-auto flex gap-2">
-            <Button variant={rec.state === "recording" ? "danger" : "primary"} onClick={() => (rec.state === "recording" ? rec.stop() : rec.start())} disabled={running}>
+            <Button variant={rec.state === "recording" ? "danger" : "primary"} onClick={() => (rec.state === "recording" ? rec.stop() : rec.start())} disabled={DEMO || running}>
               {rec.state === "recording" ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />} {rec.state === "recording" ? `Stop ${formatTime(rec.elapsed)}` : "Record query"}
             </Button>
             <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={async (e) => e.target.files?.[0] && run(await fileToWav(e.target.files[0]))} />
-            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={running}><Upload className="h-4 w-4" /> Upload</Button>
+            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={DEMO || running}><Upload className="h-4 w-4" /> Upload</Button>
           </div>
         </div>
+        {DEMO && <p className="mt-3 text-xs text-muted">{DEMO_UNAVAILABLE}</p>}
         {running && <Progress indeterminate className="mt-4" />}
       </Card>
       {!!Object.keys(results).length && (
@@ -351,11 +353,11 @@ function CompareTab() {
               <tbody>
                 {selected.filter((a) => results[a]).map((a) => {
                   const r = results[a];
-                  if ("error" in r) return <tr key={a}><td className="p-2">{a}</td><td colSpan={5} className="p-2 text-bad">{r.error}</td></tr>;
+                  if ("error" in r) return <tr key={a}><td className="p-2">{a}</td><td colSpan={5} className="p-2 text-brand">{r.error}</td></tr>;
                   return (
                     <tr key={a} className="border-t border-border/40">
                       <td className="p-2 font-medium">{a}</td>
-                      <td className="p-2"><Badge tone={r.status === "match" ? "ok" : r.status === "uncertain" ? "warn" : "neutral"}>{r.status}</Badge></td>
+                      <td className="p-2"><Badge tone={r.status === "match" ? "highlight" : r.status === "uncertain" ? "brand" : "neutral"}>{r.status}</Badge></td>
                       {[0, 1, 2].map((i) => <td key={i} className="p-2">{r.results[i] ? <span>{r.results[i].song.title} <span className="text-xs text-muted">{fixed(r.results[i].score, 3)}</span></span> : "–"}</td>)}
                       <td className="p-2">{fixed((r.engines.melody?.elapsed_s ?? 0) * 1000, 0)} ms</td>
                     </tr>
@@ -395,7 +397,7 @@ function TrainingTab() {
           <Field label="Resume"><div className="flex h-10 items-center"><Switch checked={cfg.resume} onCheckedChange={(v) => setCfg({ ...cfg, resume: v })} label="Resume" /></div></Field>
         </div>
         <div className="mt-4 flex justify-end px-5">
-          <Button variant="primary" loading={start.isPending} disabled={!!active} onClick={() => start.mutate()}><Beaker className="h-4 w-4" /> Start training</Button>
+          <Button variant="primary" loading={start.isPending} disabled={DEMO || !!active} onClick={() => start.mutate()}><Beaker className="h-4 w-4" /> Start training</Button>
         </div>
         {start.isError && <div className="px-5 pt-3"><ErrorBox error={start.error} /></div>}
         <div className="mt-4 space-y-2 px-5">{(jobs.data ?? []).slice(0, 3).map((j) => <JobCard key={j.id} job={j} onCancel={() => api.cancelJob(j.id).then(() => jobs.refetch())} />)}</div>
@@ -412,7 +414,7 @@ function TrainingTab() {
                   <YAxis tick={{ fontSize: 11 }} />
                   <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line dataKey="loss" stroke="rgb(var(--accent))" dot={false} name="train loss" />
+                  <Line dataKey="loss" stroke="rgb(var(--brand))" dot={false} name="train loss" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -424,8 +426,8 @@ function TrainingTab() {
                   <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} />
                   <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line dataKey="val_top1" stroke="rgb(var(--accent2))" dot={false} name="val top-1" />
-                  <Line dataKey="val_mrr" stroke="rgb(var(--ok))" dot={false} name="val MRR" />
+                  <Line dataKey="val_top1" stroke="rgb(var(--highlight))" dot={false} name="val top-1" />
+                  <Line dataKey="val_mrr" stroke="rgb(var(--muted))" dot={false} name="val MRR" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -450,7 +452,7 @@ function ScaleTab() {
   const curve = Object.entries(mel).map(([n, e]) => ({ n: Number(n), two: e.two_stage.top1, ann: e.neural_ann_only.top1, exh: e.exhaustive_note_align?.top1 ?? null, recall: e.candidate_recall }));
   return (
     <div className="space-y-5">
-      <p className="rounded-xl border border-warn/30 bg-warn/5 p-3 text-xs text-warn">
+      <p className="rounded-xl border border-border bg-elevated/50 p-3 text-xs text-muted">
         Synthetic: the 48 demo songs are hidden among procedurally generated distractors. Real catalogs are more diverse in timbre but contain covers, remixes and near-duplicates. Run {d.run_id}, {Math.round(d.elapsed_s / 60)} min on {d.env.machine}.
       </p>
       {!!curve.length && (
@@ -464,9 +466,9 @@ function ScaleTab() {
                 <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} />
                 <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line dataKey="two" name="two-stage top-1" stroke="rgb(var(--accent))" strokeWidth={2} />
-                <Line dataKey="ann" name="neural ANN only top-1" stroke="rgb(var(--accent2))" />
-                <Line dataKey="recall" name="stage-1 candidate recall" stroke="rgb(var(--ok))" strokeDasharray="4 4" />
+                <Line dataKey="two" name="two-stage top-1" stroke="rgb(var(--brand))" strokeWidth={2} />
+                <Line dataKey="ann" name="neural ANN only top-1" stroke="rgb(var(--highlight))" />
+                <Line dataKey="recall" name="stage-1 candidate recall" stroke="rgb(var(--muted))" strokeDasharray="4 4" />
                 <Line dataKey="exh" name="exhaustive note alignment top-1" stroke="#999" connectNulls={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -534,7 +536,7 @@ function ModelsTab() {
               <span className="truncate font-mono text-xs">{c.id}</span>
               <span className="flex items-center gap-2">
                 <Badge>{c.source}</Badge>
-                {d.neural.active?.checkpoint === c.id ? <Badge tone="ok">active</Badge> : <Button size="sm" variant="outline" loading={act.isPending && act.variables === c.id} onClick={() => act.mutate(c.id)}>Load</Button>}
+                {d.neural.active?.checkpoint === c.id ? <Badge tone="highlight">active</Badge> : <Button size="sm" variant="outline" disabled={DEMO} loading={act.isPending && act.variables === c.id} onClick={() => act.mutate(c.id)}>Load</Button>}
               </span>
             </li>
           ))}
@@ -547,11 +549,11 @@ function ModelsTab() {
         <div className="space-y-4 p-5 text-sm">
           <div>
             <div className="label mb-2">Pitch extractors</div>
-            {d.pitch_extractors.map((e) => <div key={e.name} className="flex justify-between py-1"><span>{e.label}</span><Badge tone={e.available ? "ok" : "neutral"}>{e.available ? "available" : "not installed"}</Badge></div>)}
+            {d.pitch_extractors.map((e) => <div key={e.name} className="flex justify-between py-1"><span>{e.label}</span><Badge tone={e.available ? "strong" : "neutral"}>{e.available ? "available" : "not installed"}</Badge></div>)}
           </div>
           <div>
             <div className="label mb-2">Whisper (faster-whisper) models</div>
-            {d.asr.models.map((m) => <div key={m.name} className="flex justify-between py-1"><span>{m.name}</span><Badge tone={m.cached ? "ok" : "neutral"}>{m.cached ? "downloaded" : "not downloaded"}</Badge></div>)}
+            {d.asr.models.map((m) => <div key={m.name} className="flex justify-between py-1"><span>{m.name}</span><Badge tone={m.cached ? "strong" : "neutral"}>{m.cached ? "downloaded" : "not downloaded"}</Badge></div>)}
             <p className="mt-2 text-xs text-muted">{d.asr.note}</p>
           </div>
         </div>

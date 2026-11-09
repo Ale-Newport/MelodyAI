@@ -65,6 +65,11 @@ class TrainConfig:
     val_queries_per_comp: int = 2
     device: str = "auto"
     export: bool = True
+    # Real melodies (a world melody index built from Lakh MIDI, melodyai.world.lakh) added to the synthetic
+    # training compositions; keys listed in ``real_exclude`` (one per line) are left out for evaluation.
+    real_melodies: str = ""
+    real_max: int = 0
+    real_exclude: str = ""
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -72,6 +77,25 @@ class TrainConfig:
         data = yaml.safe_load(Path(path).read_text()) or {}
         known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__}
         return cls(**known)
+
+
+def load_real_melodies(db: str | Path, max_n: int, exclude_file: str = "", seed: int = 0) -> list:
+    """Vocal lines from a world melody index (``melodies.db``), minus the excluded song keys, seeded sample."""
+    import sqlite3
+
+    from melodyai.world.melodies import unpack_notes
+
+    path = Path(db)
+    if path.is_dir():
+        path = path / "melodies.db"
+    excluded = set()
+    if exclude_file and Path(exclude_file).is_file():
+        excluded = {ln.strip() for ln in Path(exclude_file).read_text(encoding="utf-8").splitlines() if ln.strip()}
+    con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    rows = [(k, b) for k, b in con.execute("SELECT key, notes FROM melodies") if k not in excluded]
+    con.close()
+    order = np.random.default_rng(seed).permutation(len(rows))[:max_n]
+    return [unpack_notes(rows[i][1]) for i in order]
 
 
 def seed_everything(seed: int) -> None:
@@ -176,9 +200,15 @@ def train(cfg: TrainConfig, run_dir: Path | None = None, progress=None, should_s
     demo = [m.notes for m in generate_catalog(48)]
     train_comps, leak = remove_leaky(train_comps, val_comps + demo + compositions("test", 100))
     leak.pop("indices")
+    n_real = 0
+    if cfg.real_melodies and cfg.real_max > 0:
+        real = load_real_melodies(cfg.real_melodies, cfg.real_max, cfg.real_exclude, cfg.seed)
+        n_real = len(real)
+        train_comps = train_comps + real
     (run_dir / "split_report.json").write_text(json.dumps(
         {"train_seed_range": "100000+", "val_seed_range": "200000+", "test_seed_range": "300000+",
-         "demo_seed_range": "1000+", "removed_for_leakage": leak, "n_train_after": len(train_comps)}, indent=1))
+         "demo_seed_range": "1000+", "removed_for_leakage": leak, "n_train_after": len(train_comps),
+         "real_melodies": n_real, "real_source": cfg.real_melodies, "real_exclude": cfg.real_exclude}, indent=1))
 
     pool = None
     if cfg.pipeline_pool_comps > 0:

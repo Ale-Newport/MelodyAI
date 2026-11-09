@@ -105,6 +105,10 @@ DEFAULT_THRESHOLDS = {
     "fingerprint": {"accept": 0.50, "margin": 0.10, "uncertain": 0.42},
     # open-world lyrics search (melodyai.world.search): alignment score + popularity tie-break
     "world": {"accept": 0.62, "margin": 0.08, "uncertain": 0.45},
+    # hummed melodies of real songs (melodyai.world.melodies): two-stage relative score + popularity tie-break.
+    # Real songs' melodies are hard to tell apart: a confident match needs a large lead (446 synthetic hums of a
+    # 25k-song index: 25 confident matches, 1 wrong); everything else is shown as "possible songs".
+    "world_melody": {"accept": 0.5, "margin": 0.3, "uncertain": 0.45},
 }
 
 

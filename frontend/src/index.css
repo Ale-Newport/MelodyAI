@@ -2,52 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Three colours, nothing else:
+ *   base       neutral graphite (bg → surface → elevated → border → muted → fg are shades of it)
+ *   brand      violet: actions, selection, focus, the user's own melody in plots
+ *   highlight  cyan: what deserves attention (a match, live input, the tracked pitch)
+ * The --viz-* tokens are data colours used only inside plots (voicing confidence band).
+ */
 :root {
-  --bg: 246 246 250;
+  --bg: 250 250 250;
   --surface: 255 255 255;
-  --elevated: 240 240 246;
-  --border: 222 222 232;
-  --fg: 17 17 27;
-  --muted: 100 100 120;
-  --accent: 124 92 252;
-  --accent2: 14 165 233;
-  --ok: 22 163 74;
-  --warn: 217 119 6;
-  --bad: 220 38 38;
+  --elevated: 244 244 245;
+  --border: 228 228 231;
+  --fg: 24 24 27;
+  --muted: 113 113 122;
+  --brand: 124 92 252;
+  --brand-fg: 255 255 255;
+  --highlight: 8 145 178;
+  --viz-voiced: 22 163 74;
+  --viz-unvoiced: 220 38 38;
   color-scheme: light;
 }
 .dark {
-  --bg: 9 9 14;
-  --surface: 18 18 27;
-  --elevated: 27 27 40;
-  --border: 44 44 62;
-  --fg: 236 236 245;
-  --muted: 150 150 172;
-  --accent: 167 139 250;
-  --accent2: 34 211 238;
-  --ok: 74 222 128;
-  --warn: 251 191 36;
-  --bad: 248 113 113;
+  --bg: 11 11 14;
+  --surface: 19 19 23;
+  --elevated: 27 27 32;
+  --border: 39 39 46;
+  --fg: 237 237 240;
+  --muted: 140 140 150;
+  --brand: 167 139 250;
+  --brand-fg: 11 11 14;
+  --highlight: 34 211 238;
+  --viz-voiced: 74 222 128;
+  --viz-unvoiced: 248 113 113;
   color-scheme: dark;
 }
 
 @layer base {
   html, body, #root { height: 100%; }
-  body {
-    @apply bg-bg text-fg font-sans antialiased;
-    background-image:
-      radial-gradient(1200px 600px at 85% -10%, rgb(var(--accent) / 0.10), transparent 60%),
-      radial-gradient(900px 500px at -10% 110%, rgb(var(--accent2) / 0.08), transparent 60%);
-    background-attachment: fixed;
-  }
-  :focus-visible { @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-bg; }
-  ::selection { background: rgb(var(--accent) / 0.35); }
+  body { @apply bg-bg text-fg font-sans antialiased; }
+  :focus-visible { @apply outline-none ring-2 ring-brand/70 ring-offset-2 ring-offset-bg; }
+  ::selection { background: rgb(var(--brand) / 0.3); }
 }
 
 @layer components {
-  .card { @apply rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_1px_0_0_rgb(255_255_255/0.03)_inset,0_10px_30px_-12px_rgb(0_0_0/0.35)]; }
+  .card { @apply rounded-2xl border border-border bg-surface; }
   .label { @apply text-[11px] font-medium uppercase tracking-[0.08em] text-muted; }
-  .gradient-text { @apply bg-gradient-to-r from-accent to-accent2 bg-clip-text text-transparent; }
   .tabular { font-variant-numeric: tabular-nums; }
   .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 8px; }

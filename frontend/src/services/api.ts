@@ -18,6 +18,8 @@ import type {
   WorldStatus,
   WorldSyncPresetName,
 } from "@/types/api";
+import { DEMO, demoUrl } from "@/lib/demo";
+import { demoRequest } from "@/services/demo";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -26,6 +28,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (DEMO) return demoRequest<T>(path, init);
   const res = await fetch(path, init);
   if (!res.ok) {
     let msg = res.statusText;
@@ -95,7 +98,7 @@ export const api = {
     request<Song>(`/api/songs/${encodeURIComponent(id)}/lyrics`, json("PUT", body)),
   deleteSong: (id: string) => request(`/api/songs/${encodeURIComponent(id)}`, { method: "DELETE" }),
   reindexSong: (id: string) => request<Song>(`/api/songs/${encodeURIComponent(id)}/reindex`, { method: "POST" }),
-  songAudioUrl: (id: string) => `/api/songs/${encodeURIComponent(id)}/audio`,
+  songAudioUrl: (id: string) => (DEMO ? demoUrl(`audio/${encodeURIComponent(id)}.mp3`) : `/api/songs/${encodeURIComponent(id)}/audio`),
   songMelody: (id: string) =>
     request<{ notes: { onsets: number[]; durations: number[]; pitches: number[] }; contour: number[]; contour_rate_hz: number; contour_t0: number }>(
       `/api/songs/${encodeURIComponent(id)}/melody`,
@@ -133,7 +136,8 @@ export const api = {
     q.set("limit", "500");
     return request<{ total: number; items: any[] }>(`/api/experiments/${encodeURIComponent(id)}/queries?${q}`);
   },
-  figureUrl: (id: string, name: string) => `/api/experiments/${encodeURIComponent(id)}/figures/${name}`,
+  figureUrl: (id: string, name: string) =>
+    DEMO ? demoUrl(`figures/${encodeURIComponent(id)}/${name}`) : `/api/experiments/${encodeURIComponent(id)}/figures/${name}`,
   evaluate: (config: "quick" | "default") => request<Job>("/api/experiments/evaluate", json("POST", { config })),
   train: (body: { config: "default" | "smoke"; epochs?: number; loss?: string; lr?: number; batch_size?: number; resume?: boolean }) =>
     request<Job>("/api/training/jobs", json("POST", body)),
@@ -151,7 +155,8 @@ export const api = {
   worldSearch: (q: string, language?: string, topK?: number) =>
     request<WorldEngineResult>("/api/world/search", json("POST", { q, language: language ?? null, top_k: topK ?? 5 })),
   /** Redirects to a fresh 30 s Deezer preview (stored preview URLs expire after ~15 minutes). */
-  worldPreviewUrl: (deezerId: number) => `/api/world/preview/${encodeURIComponent(String(deezerId))}`,
+  // The static demo has no server to resolve previews: no preview button there.
+  worldPreviewUrl: (deezerId: number) => (DEMO ? "" : `/api/world/preview/${encodeURIComponent(String(deezerId))}`),
   worldSongs: (q = "", offset = 0, limit = 50) => {
     const p = new URLSearchParams({ offset: String(offset), limit: String(limit) });
     if (q.trim()) p.set("q", q.trim());

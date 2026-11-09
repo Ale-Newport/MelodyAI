@@ -2,20 +2,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Globe2, Lightbulb, Mic, MicOff, Music4, Pause, Play, Radio, Search, ShieldAlert, Square, Upload, Wind, Type, Sparkles, Layers, X } from "lucide-react";
+import { AudioLines, Globe2, Lightbulb, Mic, MicOff, Music4, Pause, Play, Radio, Search, ShieldAlert, Square, Upload, Wind, Type, Layers, X } from "lucide-react";
 import { useRecorder } from "@/hooks/useRecorder";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { api } from "@/services/api";
 import type { Mode, RecognitionResult } from "@/types/api";
 import { fileToWav } from "@/lib/wav";
-import { Button, Card, CardHeader, ErrorBox, Input, Progress, SegmentedControl, Badge } from "@/components/ui/primitives";
+import { Button, Card, CardHeader, ErrorBox, Input, Progress, SegmentedControl } from "@/components/ui/primitives";
 import { LiveWaveform } from "@/visualizations/canvas";
-import { ResultsView, Artwork } from "@/features/recognition/ResultsView";
+import { ResultsView } from "@/features/recognition/ResultsView";
 import { cn, formatTime } from "@/lib/utils";
 import { stopPreview, togglePreview, usePreviewActive } from "@/lib/preview";
+import { DEMO } from "@/lib/demo";
 
 const MODE_ICONS: Record<Mode, JSX.Element> = {
-  auto: <Sparkles className="h-4 w-4" />,
+  auto: <AudioLines className="h-4 w-4" />,
   clip: <Radio className="h-4 w-4" />,
   hum: <Music4 className="h-4 w-4" />,
   whistle: <Wind className="h-4 w-4" />,
@@ -27,12 +28,11 @@ function MicButton({ state, level, onClick, disabled }: { state: "idle" | "recor
   const { t } = useAppSettings();
   const rec = state === "recording";
   return (
-    <div className="relative grid place-items-center" style={{ width: 220, height: 220 }}>
+    <div className="relative grid place-items-center" style={{ width: 200, height: 200 }}>
       {rec && (
         <>
-          <span className="absolute h-40 w-40 animate-ripple rounded-full bg-accent/25" />
-          <span className="absolute h-40 w-40 animate-ripple rounded-full bg-accent2/20 [animation-delay:1.2s]" />
-          <span className="absolute rounded-full bg-gradient-to-r from-accent/30 to-accent2/30 blur-xl transition-all duration-100" style={{ width: 160 + level * 90, height: 160 + level * 90 }} />
+          <span className="absolute h-36 w-36 animate-ripple rounded-full border border-brand/50" />
+          <span className="absolute rounded-full bg-brand/10 transition-all duration-100" style={{ width: 144 + level * 56, height: 144 + level * 56 }} />
         </>
       )}
       <button
@@ -40,12 +40,12 @@ function MicButton({ state, level, onClick, disabled }: { state: "idle" | "recor
         disabled={disabled || state === "busy"}
         aria-label={rec ? t("rec.stop") : t("rec.tap")}
         className={cn(
-          "relative z-10 grid h-40 w-40 place-items-center rounded-full transition-all duration-300 focus-visible:ring-4",
-          rec ? "scale-105 bg-gradient-to-br from-accent to-accent2 shadow-[0_0_60px_-5px] shadow-accent/60" : "bg-gradient-to-br from-elevated to-surface ring-1 ring-border hover:ring-accent/60 hover:shadow-[0_0_50px_-10px] hover:shadow-accent/50",
+          "relative z-10 grid h-36 w-36 place-items-center rounded-full border transition-colors duration-200 focus-visible:ring-4",
+          rec ? "border-brand bg-brand" : "border-border bg-elevated hover:border-brand/60",
           state === "busy" && "opacity-60",
         )}
       >
-        {rec ? <Square className="h-12 w-12 fill-black text-black" /> : <Mic className="h-14 w-14 text-accent" />}
+        {rec ? <Square className="h-10 w-10 fill-brand-fg text-brand-fg" /> : <Mic className="h-12 w-12 text-brand" />}
       </button>
     </div>
   );
@@ -62,7 +62,7 @@ function PracticePanel() {
   if (!songs.length)
     return (
       <Card className="p-6 text-center text-sm text-muted">
-        The catalog is empty. <Link to="/library" className="text-accent hover:underline">Import the demo catalog</Link> to start.
+        The catalog is empty. <Link to="/library" className="text-brand hover:underline">Import the demo catalog</Link> to start.
       </Card>
     );
   const toggle = (id: string) => togglePreview(`song:${id}`, api.songAudioUrl(id));
@@ -71,18 +71,20 @@ function PracticePanel() {
       <CardHeader title="Practice with the catalog" subtitle="Listen to a melody, then hum or whistle any part of it — the chorus in the middle works too." />
       <div className="grid max-h-80 grid-cols-1 gap-1 overflow-y-auto p-3 scrollbar-thin sm:grid-cols-2 lg:grid-cols-3">
         {songs.map((s) => (
-          <button key={s.id} onClick={() => toggle(s.id)} className="flex items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-elevated/60" aria-label={`Play ${s.title}`}>
-            <div className="relative">
-              <Artwork id={s.id} size={40} />
-              <span className="absolute inset-0 grid place-items-center rounded-xl bg-black/30">
-                {playing === s.id ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-white" />}
-              </span>
-            </div>
+          <button key={s.id} onClick={() => toggle(s.id)} className="group flex items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-elevated/60" aria-label={`Play ${s.title}`}>
+            <span
+              className={cn(
+                "grid h-9 w-9 shrink-0 place-items-center rounded-lg border transition-colors",
+                playing === s.id ? "border-brand bg-brand text-brand-fg" : "border-border bg-elevated text-muted group-hover:border-brand/50 group-hover:text-brand",
+              )}
+            >
+              {playing === s.id ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+            </span>
             <div className="min-w-0">
               <div className="truncate text-sm font-medium">{s.title}</div>
               <div className="truncate text-xs text-muted">
                 {s.artist}
-                {s.has_lyrics && <span className="ml-1 text-accent2">· lyrics</span>}
+                {s.has_lyrics && " · lyrics"}
               </div>
             </div>
           </button>
@@ -99,17 +101,22 @@ function History() {
     <Card>
       <CardHeader title="Recent searches" subtitle="Results only — recordings are not kept unless you allowed it" />
       <ul className="p-3">
-        {data.map((h) => (
-          <li key={h.id}>
-            <Link to={`/r/${h.id}`} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm hover:bg-elevated/60">
-              <span className="truncate">{h.top_song && h.status !== "no_match" ? h.top_song.title : "No reliable match"}</span>
-              <span className="flex items-center gap-2 text-xs text-muted">
-                <Badge tone={h.status === "match" ? "ok" : h.status === "uncertain" ? "warn" : "neutral"}>{h.resolved_mode ?? h.mode}</Badge>
-                {new Date(h.created_at).toLocaleTimeString()}
-              </span>
-            </Link>
-          </li>
-        ))}
+        {data.map((h) => {
+          const found = !!h.top_song && h.status !== "no_match";
+          return (
+            <li key={h.id}>
+              <Link to={`/r/${h.id}`} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-elevated/60">
+                <span
+                  title={h.status.replace("_", " ")}
+                  className={cn("h-1.5 w-1.5 shrink-0 rounded-full", h.status === "match" ? "bg-highlight" : h.status === "uncertain" ? "bg-brand" : "bg-muted/40")}
+                />
+                <span className={cn("min-w-0 flex-1 truncate", !found && "text-muted")}>{found ? h.top_song!.title : "No reliable match"}</span>
+                <span className="font-mono text-[11px] text-muted">{(h.resolved_mode ?? h.mode).replace("_", " ")}</span>
+                <span className="font-mono text-[11px] text-muted tabular">{new Date(h.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </Card>
   );
@@ -174,7 +181,7 @@ export default function RecognizePage() {
   return (
     <div className="space-y-8">
       <section
-        className={cn("card relative overflow-hidden px-4 pb-8 pt-10 text-center sm:px-10", dragging && "ring-2 ring-accent")}
+        className={cn("card relative overflow-hidden px-4 pb-8 pt-10 text-center sm:px-10", dragging && "ring-2 ring-brand")}
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -187,9 +194,7 @@ export default function RecognizePage() {
           if (f) uploadFile(f);
         }}
       >
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          <span className="gradient-text">{t("rec.headline")}</span>
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t("rec.headline")}</h1>
         <p className="mx-auto mt-2 max-w-xl text-muted">{t("rec.sub")}</p>
         <div className="mt-6 flex justify-center">
           <SegmentedControl
@@ -201,14 +206,19 @@ export default function RecognizePage() {
         </div>
         <p className="mt-2 text-xs text-muted">{t(`mode.${mode}.hint` as any)}</p>
         {mode !== "clip" && (
-          <p className="mx-auto mt-3 flex max-w-xl items-start justify-center gap-1.5 rounded-xl border border-accent2/25 bg-accent2/5 px-3 py-2 text-left text-xs text-fg/90">
-            <Lightbulb className="mt-px h-3.5 w-3.5 shrink-0 text-accent2" />
+          <p className="mx-auto mt-3 flex max-w-xl items-start justify-center gap-1.5 rounded-xl border border-border bg-elevated/50 px-3 py-2 text-left text-xs text-fg/90">
+            <Lightbulb className="mt-px h-3.5 w-3.5 shrink-0 text-highlight" />
             {t("rec.tip")}
           </p>
         )}
 
         <div className="mt-4 flex flex-col items-center">
-          <MicButton state={busy ? "busy" : recording ? "recording" : "idle"} level={rec.level} onClick={() => (recording ? rec.stop() : (setResult(null), rec.start()))} />
+          <MicButton
+            state={busy ? "busy" : recording ? "recording" : "idle"}
+            level={rec.level}
+            // The static demo does not record: it shows the example result of the selected mode.
+            onClick={() => (DEMO ? (setResult(null), m.mutate({})) : recording ? rec.stop() : (setResult(null), rec.start()))}
+          />
           <div className="h-24 w-full max-w-xl">
             <AnimatePresence>
               {recording && (
@@ -218,7 +228,7 @@ export default function RecognizePage() {
                     <span className="font-mono tabular text-fg">{formatTime(rec.elapsed)}</span>
                     <span className="text-muted">/ {formatTime(settings.max_record_seconds)}</span>
                     <div className="h-1.5 w-24 overflow-hidden rounded-full bg-elevated" aria-label="Input volume">
-                      <div className={cn("h-full transition-all", rec.level > 0.9 ? "bg-bad" : "bg-ok")} style={{ width: `${rec.level * 100}%` }} />
+                      <div className={cn("h-full transition-all", rec.level > 0.9 ? "bg-brand" : "bg-highlight")} style={{ width: `${rec.level * 100}%` }} />
                     </div>
                     <Button size="sm" variant="ghost" onClick={cancel}>
                       <X className="h-4 w-4" /> {t("rec.cancel")}
@@ -227,11 +237,11 @@ export default function RecognizePage() {
                   {rec.elapsed < settings.min_record_seconds && <p className="text-xs text-muted">{t("rec.min", { s: settings.min_record_seconds })}</p>}
                 </motion.div>
               )}
-              {!recording && !busy && <p className="pt-2 text-sm text-muted">{t("rec.tap")}</p>}
+              {!recording && !busy && <p className="pt-2 text-sm text-muted">{t(DEMO ? "demo.tap" : "rec.tap")}</p>}
             </AnimatePresence>
           </div>
           {(rec.state === "denied" || rec.state === "error") && (
-            <div className="mt-2 flex items-center gap-2 text-sm text-bad">
+            <div className="mt-2 flex items-center gap-2 text-sm text-brand">
               <MicOff className="h-4 w-4" /> {rec.state === "denied" ? t("rec.denied") : rec.error}
             </div>
           )}
@@ -255,14 +265,14 @@ export default function RecognizePage() {
           )}
           <div className={cn("flex items-center justify-center gap-2", !(mode === "lyrics" || mode === "combined" || mode === "auto") && "sm:col-span-2")}>
             <input ref={fileRef} type="file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.webm" className="hidden" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
-            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={busy || recording}>
+            <Button variant="outline" onClick={() => (DEMO ? (setResult(null), m.mutate({})) : fileRef.current?.click())} disabled={busy || recording}>
               <Upload className="h-4 w-4" /> {t("rec.upload")}
             </Button>
           </div>
         </div>
         <p className="mt-2 text-xs text-muted">{t("rec.drop")}</p>
         {settings.external_provider_enabled && (
-          <p className="mx-auto mt-3 flex max-w-xl items-center justify-center gap-1.5 text-xs text-warn">
+          <p className="mx-auto mt-3 flex max-w-xl items-center justify-center gap-1.5 text-xs text-brand">
             <ShieldAlert className="h-3.5 w-3.5" />
             {settings.provider_policy === "always" ? "Every recording" : "Recordings not found locally"} are also sent (≤12 s) to the licensed catalog provider.
           </p>
@@ -299,7 +309,8 @@ export default function RecognizePage() {
           </Card>
         )}
         {m.isError && !(m.error as any)?.name?.includes("Abort") && <ErrorBox error={m.error} />}
-        {shortWarning && result && <p className="mb-3 text-xs text-warn">{t("rec.min", { s: settings.min_record_seconds })}</p>}
+        {shortWarning && result && <p className="mb-3 text-xs text-brand">{t("rec.min", { s: settings.min_record_seconds })}</p>}
+        {result && !busy && DEMO && <p className="mb-3 text-xs text-muted">{t("demo.example")}</p>}
         {result && !busy && <ResultsView result={result} onAgain={() => { setResult(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} />}
       </div>
 
