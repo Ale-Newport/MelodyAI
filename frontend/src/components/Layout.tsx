@@ -24,7 +24,7 @@ function HealthPill() {
   const { data, isError } = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: DEMO ? false : 15000 });
   if (DEMO)
     return (
-      <span className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1 text-xs text-muted">
+      <span className="flex items-center gap-2 whitespace-nowrap rounded-md border border-border px-2.5 py-1 text-xs text-muted">
         <span className="h-1.5 w-1.5 rounded-full bg-brand" /> Demo{data ? ` · ${data.indexed} songs` : ""}
       </span>
     );
@@ -59,7 +59,7 @@ function HealthPill() {
 function DemoNotice() {
   const { t } = useAppSettings();
   return (
-    <p className="hidden text-xs text-muted lg:block">
+    <p className="hidden truncate text-xs text-muted xl:block">
       {t("demo.banner")}{" "}
       <a href={`${REPO_URL}#quick-start`} target="_blank" rel="noreferrer noopener" className="font-medium text-fg underline decoration-border underline-offset-4 hover:decoration-fg">
         {t("demo.runLocally")}
@@ -115,7 +115,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="lg:hidden">
             <Logo />
           </div>
-          {DEMO ? <DemoNotice /> : <div className="hidden lg:block" />}
+          <div className="hidden min-w-0 lg:block">{DEMO && <DemoNotice />}</div>
           <div className="flex items-center gap-2">
             <HealthPill />
             <button
