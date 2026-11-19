@@ -213,6 +213,16 @@ class RecognitionEngine:
     def list_algorithms(self) -> list[dict]:
         return [{"name": n, "label": getattr(a, "label", n)} for n, a in self.algorithms.items()]
 
+    def melody_matcher(self, algorithm: str | None = None):
+        """Resolve an explicit matcher or use the available configured default."""
+        name = algorithm or self.settings.melody_algorithm
+        matcher = self.algorithms.get(name)
+        if matcher is not None:
+            return matcher
+        if algorithm:
+            raise ValueError(f"Unknown melody algorithm '{name}'")
+        return self.algorithms["ensemble"]
+
     def reload_calibration(self) -> None:
         self.calibration = load_calibration()
 
@@ -229,15 +239,14 @@ class RecognitionEngine:
 
     # -------------------------------------------------------------- engines
     def run_melody(self, q: QueryFeatures, algorithm: str | None = None, top_k: int = 5) -> dict:
-        name = algorithm or self.settings.melody_algorithm
-        if name not in self.algorithms:
-            raise ValueError(f"Unknown melody algorithm '{name}'")
+        matcher = self.melody_matcher(algorithm)
+        name = matcher.name
         if not q.informative:
             return {"algorithm": name, "candidates": [], "status": "insufficient_melody",
                     "reason": "Not enough stable pitched content (need ~1.5 s of voiced melody with >= 3 notes).",
                     "reliability": 0.0, "elapsed_s": 0.0}
         t0 = time.perf_counter()
-        cands = self.algorithms[name].search(q, self.melody_index, max(top_k, 10))
+        cands = matcher.search(q, self.melody_index, max(top_k, 10))
         elapsed = time.perf_counter() - t0
         return {"algorithm": name, "candidates": [c.to_dict() for c in cands], "status": "ok",
                 "reliability": round(melody_reliability(q), 4), "elapsed_s": round(elapsed, 4)}

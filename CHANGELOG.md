@@ -6,6 +6,11 @@ All notable changes to MelodyAI are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Restore the saved melody matcher when its neural checkpoint is available. Recognition and Melody Explorer
+  use the classical ensemble while a checkpoint loads or after a load failure.
+
 ## [0.1.0] - 2026-11-19
 
 First public release.

@@ -1,5 +1,7 @@
-"""FastAPI integration tests (real engine, temporary store, no network, no neural model)."""
+"""FastAPI integration tests with a real engine, temporary stores and no network."""
 
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import numpy as np
 import pytest
@@ -7,11 +9,14 @@ from fastapi.testclient import TestClient
 
 from app.core.config import ServerSettings
 from app.main import create_app
+from app.services.user_settings import SettingsStore
 from melodyai.audio.io import wav_bytes
 from melodyai.catalog.importers import notes_to_midi_bytes
 from melodyai.demo.generator import generate_catalog
 from melodyai.demo.lyrics_bank import LYRICS
 from melodyai.demo.queries import CONDITIONS, perturb, synth_query
+from melodyai.matching import neural
+from melodyai.matching.ensemble import MelodyEnsemble
 
 
 @pytest.fixture(scope="module")
@@ -48,6 +53,74 @@ def test_health_and_models(client):
     names = {a["name"] for a in m["melody_algorithms"]}
     assert {"dtw", "subseq_dtw", "chroma_dtw", "note_align", "ensemble"} <= names
     assert any(e["name"] == "pyin" and e["available"] for e in m["pitch_extractors"])
+
+
+def _neural_app(tmp_path, monkeypatch, attach):
+    models = tmp_path / "models"
+    models.mkdir()
+    (models / "melody_encoder.pt").touch()
+    store = tmp_path / "store"
+    SettingsStore(store / "settings.json").update({"melody_algorithm": "ensemble_neural"})
+    monkeypatch.setenv("MELODYAI_MODELS_DIR", str(models))
+    monkeypatch.setattr(neural, "attach_neural", attach)
+    return create_app(ServerSettings(store_dir=str(store), load_neural_model=True, serve_frontend=False))
+
+
+def _attach_test_matcher(engine, _catalog, _checkpoint, _cache_root):
+    engine.register_algorithm(MelodyEnsemble("ensemble_neural", {"dtw": engine.algorithms["dtw"]}))
+    return {"model_id": "test"}
+
+
+@pytest.mark.parametrize("load_fails", [False, True])
+def test_saved_neural_default_at_startup(tmp_path, monkeypatch, load_fails):
+    def attach(*args):
+        if load_fails:
+            raise RuntimeError("incompatible checkpoint")
+        return _attach_test_matcher(*args)
+
+    app = _neural_app(tmp_path, monkeypatch, attach)
+    with TestClient(app) as c:
+        assert c.get("/api/settings").json()["melody_algorithm"] == "ensemble_neural"
+        models = c.get("/api/models").json()
+        assert models["default_algorithm"] == ("ensemble" if load_fails else "ensemble_neural")
+        assert models["neural"]["error"] == ("incompatible checkpoint" if load_fails else None)
+
+
+def test_neural_reload_fallback_and_recovery(tmp_path, monkeypatch, melodies):
+    loading = Event()
+    finish = Event()
+
+    def attach(engine, catalog, checkpoint, cache_root):
+        if checkpoint.name == "bad.pt":
+            loading.set()
+            assert finish.wait(timeout=60)
+            raise RuntimeError("incompatible checkpoint")
+        return _attach_test_matcher(engine, catalog, checkpoint, cache_root)
+
+    app = _neural_app(tmp_path, monkeypatch, attach)
+    (tmp_path / "models" / "bad.pt").touch()
+    with TestClient(app) as c, ThreadPoolExecutor(max_workers=1) as pool:
+        assert c.put("/api/settings", json={"melody_algorithm": "ensemble_neural"}).status_code == 200
+        assert c.get("/api/models").json()["default_algorithm"] == "ensemble_neural"
+        activation = pool.submit(c.post, "/api/models/neural/activate", json={"checkpoint": "models/bad.pt"})
+        try:
+            assert loading.wait(timeout=10)
+            files = {"audio": ("q.wav", hum_wav(melodies[0]), "audio/wav")}
+            recognition = c.post("/api/recognize/hum", files=files)
+            assert recognition.status_code == 200, recognition.text
+            assert recognition.json()["engines"]["melody"]["algorithm"] == "ensemble"
+            analysis = c.post("/api/audio/analyze", files=files)
+            assert analysis.status_code == 200, analysis.text
+            assert analysis.json()["informative"]
+        finally:
+            finish.set()
+        assert activation.result(timeout=10).status_code == 500
+
+        assert c.get("/api/models").json()["default_algorithm"] == "ensemble"
+        assert c.get("/api/settings").json()["melody_algorithm"] == "ensemble_neural"
+        r = c.post("/api/models/neural/activate", json={"checkpoint": "models/melody_encoder.pt"})
+        assert r.status_code == 200, r.text
+        assert c.get("/api/models").json()["default_algorithm"] == "ensemble_neural"
 
 
 def test_recognize_hum(client, melodies):

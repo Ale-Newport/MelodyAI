@@ -59,7 +59,7 @@ async def analyze_audio(
         safe_id(song_id)
 
     def match_fn(q):
-        alg = state.engine.algorithms[state.engine.settings.melody_algorithm]
+        alg = state.engine.melody_matcher()
         c = alg.search(q, state.catalog.melody_index, 1)
         return c[0].to_dict() if c else None
 
@@ -93,7 +93,7 @@ def models(state: AppState = Depends(get_state)):
     return {
         "pitch_extractors": list_extractors(),
         "melody_algorithms": state.engine.list_algorithms(),
-        "default_algorithm": state.engine.settings.melody_algorithm,
+        "default_algorithm": state.engine.melody_matcher().name,
         "fusion_methods": ["weighted", "rrf", "combmnz"],
         "asr": _asr_info(state),
         "neural": {"active": state.neural, "error": state.neural_error,
