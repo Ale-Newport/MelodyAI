@@ -413,7 +413,7 @@ function TrainingTab() {
                   <XAxis dataKey="epoch" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} itemSorter={null} />
                   <Line dataKey="loss" stroke="rgb(var(--brand))" dot={false} name="train loss" />
                 </LineChart>
               </ResponsiveContainer>
@@ -425,7 +425,7 @@ function TrainingTab() {
                   <XAxis dataKey="epoch" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} />
                   <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} itemSorter={null} />
                   <Line dataKey="val_top1" stroke="rgb(var(--highlight))" dot={false} name="val top-1" />
                   <Line dataKey="val_mrr" stroke="rgb(var(--muted))" dot={false} name="val MRR" />
                 </LineChart>
@@ -465,7 +465,7 @@ function ScaleTab() {
                 <XAxis dataKey="n" scale="log" type="number" domain={["dataMin", "dataMax"]} tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} />
                 <RTooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} itemSorter={null} />
                 <Line dataKey="two" name="two-stage top-1" stroke="rgb(var(--brand))" strokeWidth={2} />
                 <Line dataKey="ann" name="neural ANN only top-1" stroke="rgb(var(--highlight))" />
                 <Line dataKey="recall" name="stage-1 candidate recall" stroke="rgb(var(--muted))" strokeDasharray="4 4" />
