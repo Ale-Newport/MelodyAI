@@ -16,6 +16,7 @@ httpx's INFO request log (full URLs, i.e. the user's words in search queries) is
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -104,12 +105,14 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     if settings.serve_frontend and (dist / "index.html").exists():
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 
+        dist_real = os.path.realpath(dist)
+
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str):
-            p = (dist / path).resolve()
-            if path and dist in p.parents and p.is_file():
-                return FileResponse(p)
-            return FileResponse(Path(dist / "index.html"))
+            full = os.path.realpath(os.path.join(dist_real, path))
+            if path and full.startswith(dist_real + os.sep) and os.path.isfile(full):
+                return FileResponse(full)
+            return FileResponse(Path(dist_real) / "index.html")
 
     return app
 

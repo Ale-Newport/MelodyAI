@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -190,7 +192,11 @@ def list_experiments():
 def _run_dir(run_id: str):
     if not RUN_ID.match(run_id):
         raise HTTPException(400, "Invalid run id")
-    d = experiments_dir() / "runs" / run_id
+    base = os.path.realpath(experiments_dir() / "runs")
+    full = os.path.realpath(os.path.join(base, run_id))
+    if not full.startswith(base + os.sep):             # defence in depth: the regex already forbids / and ..
+        raise HTTPException(400, "Invalid run id")
+    d = Path(full)
     if not (d / "metrics.json").exists():
         raise HTTPException(404, "Run not found")
     return d
@@ -222,7 +228,11 @@ def experiment_queries(run_id: str, algorithm: str | None = None, condition: str
 def experiment_figure(run_id: str, name: str):
     if not re.match(r"^[a-z0-9_]+\.png$", name):
         raise HTTPException(400, "Invalid figure name")
-    p = _run_dir(run_id) / "figures" / name
+    figures = os.path.realpath(_run_dir(run_id) / "figures")
+    full = os.path.realpath(os.path.join(figures, name))
+    if not full.startswith(figures + os.sep):
+        raise HTTPException(400, "Invalid figure name")
+    p = Path(full)
     if not p.exists():
         raise HTTPException(404, "Figure not found")
     return FileResponse(p, media_type="image/png")
