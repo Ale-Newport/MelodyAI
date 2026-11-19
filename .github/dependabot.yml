@@ -8,6 +8,10 @@ updates:
     groups:
       python-minor:
         update-types: [minor, patch]
+    ignore:
+      # The [pitch] extra pins setuptools<81 on purpose: basic-pitch 0.4 needs resampy<0.4.3, which imports
+      # pkg_resources (removed in setuptools 81). Revisit when basic-pitch drops that pin.
+      - dependency-name: setuptools
 
   - package-ecosystem: npm
     directory: /frontend
@@ -17,6 +21,10 @@ updates:
     groups:
       npm-minor:
         update-types: [minor, patch]
+    ignore:
+      # tailwind-merge 3 targets Tailwind CSS 4; the app uses Tailwind 3. Upgrade both together.
+      - dependency-name: tailwind-merge
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
