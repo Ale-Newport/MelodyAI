@@ -144,7 +144,10 @@ def test_one_stalled_window_does_not_lose_the_others():
         t = time.perf_counter()
         cands = src.propose(text, tokenize(text), None)
         returned = time.perf_counter()
-    assert returned - t < 0.9
+    # The source aims at 0.75 s (SOURCE_MARGIN_S before the 1.0 s deadline); what matters is answering before
+    # the deadline rather than after the 1.5 s stalled request. A tighter bound flaked on slow CI runners
+    # (0.906 s on a macOS runner).
+    assert returned - t < 1.0
     assert cands and cands[0].title == "Paper Kites"
     time.sleep(1.0)
     assert started and all(s < returned for s in started)
