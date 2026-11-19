@@ -38,3 +38,5 @@ experiments/training/*/best.pt
 
 # Build caches
 *.tsbuildinfo
+build/
+dist/

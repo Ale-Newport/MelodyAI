@@ -51,7 +51,8 @@ what is not done.
   recordings. The UI labels it accordingly and defaults to relative scores.
 * **Learned fusion**: trained on 20 combined queries; indicative only.
 * **PostgreSQL**: supported through SQLAlchemy URLs but not covered by the test suite.
-* **Docker image**: provided as an alternative; not built or run in the development environment.
+* **Docker image**: built in CI, started, and checked to serve the API with the demo catalog; recognition inside the
+  container is not exercised beyond the test suite.
 
 ## Not done / out of scope
 

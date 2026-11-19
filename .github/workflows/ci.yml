@@ -109,6 +109,7 @@ jobs:
             if curl -fsS http://localhost:8000/api/health; then echo; break; fi
             sleep 5
           done
+          test "$(docker inspect -f '{{.State.Running}}' melodyai)" = true
           curl -fsS http://localhost:8000/api/health | python3 -c 'import json,sys; n=json.load(sys.stdin)["songs"]; print(n, "songs"); assert n > 0'
           curl -fsS -o /dev/null http://localhost:8000/
       - name: Container logs

@@ -30,3 +30,6 @@ updates:
     directory: /
     schedule: { interval: monthly }
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: python      # requires-python is >=3.10,<3.13
+        versions: [">=3.13"]

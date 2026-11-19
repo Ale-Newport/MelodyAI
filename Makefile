@@ -9,7 +9,7 @@ EXTRAS ?= ml,asr,pitch,dev
 MODEL ?= large-v3-turbo
 PRESET ?= quick
 
-.PHONY: help setup setup-min demo-data dev backend frontend test test-fast test-frontend evaluate evaluate-quick \
+.PHONY: help quickstart setup setup-min demo-data dev backend frontend test test-fast test-frontend evaluate evaluate-quick \
         evaluate-scale evaluate-world train train-smoke report lint format build asr-model ingest world-sync lakh \
         demo-site pages \
         clean
@@ -23,6 +23,11 @@ ifdef UV
 else
 	$(PY) -m venv $(VENV)
 endif
+
+quickstart: ## One command: install everything, import the demo catalog and start the app
+	$(MAKE) setup
+	$(MAKE) demo-data
+	$(MAKE) dev
 
 setup: $(BIN)/python ## Install backend (all extras) + frontend dependencies
 ifdef UV

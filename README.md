@@ -1,24 +1,28 @@
 <div align="center">
 
-<img src="frontend/public/favicon.svg" width="64" height="64" alt="MelodyAI logo">
+<a href="https://ale-newport.github.io/MelodyAI/"><img src="docs/media/demo.gif" width="860" alt="MelodyAI recognising a hummed chorus: press the microphone, hum for ten seconds, and the song is found with high confidence, with the matched passage, other candidates and the pitch track"></a>
 
-# MelodyAI
+<sub>The real app and engine recognising a hummed chorus (recording and processing shown at 3× speed).</sub>
 
-**Recognise a song by humming, whistling or singing it, by a line of its lyrics, or from a clip of the track itself.**
+# <img src="frontend/public/favicon.svg" width="36" height="36" alt=""> MelodyAI
 
-Local-first query-by-humming engine with a web app, a reproducible benchmark and a training lab.
+**Hum, whistle or sing a few seconds of any part of a song (or type a line you half remember) and MelodyAI finds it, on
+your own machine.**
+
+Open-source query-by-humming engine with a web app, explainable results, a reproducible benchmark and a training lab.
 
 [![CI](https://github.com/Ale-Newport/MelodyAI/actions/workflows/ci.yml/badge.svg)](https://github.com/Ale-Newport/MelodyAI/actions/workflows/ci.yml)
-[![Pages](https://github.com/Ale-Newport/MelodyAI/actions/workflows/pages.yml/badge.svg)](https://ale-newport.github.io/MelodyAI/)
+[![CodeQL](https://github.com/Ale-Newport/MelodyAI/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ale-Newport/MelodyAI/actions/workflows/codeql.yml)
+[![Live demo](https://github.com/Ale-Newport/MelodyAI/actions/workflows/pages.yml/badge.svg)](https://ale-newport.github.io/MelodyAI/)
+[![Release](https://img.shields.io/github/v/release/Ale-Newport/MelodyAI?color=7c5cfc)](https://github.com/Ale-Newport/MelodyAI/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-8b8b94.svg)](LICENSE)
-![Python 3.11](https://img.shields.io/badge/python-3.11-8b8b94.svg)
-![Node 18+](https://img.shields.io/badge/node-18%2B-8b8b94.svg)
+![Python 3.10–3.12](https://img.shields.io/badge/python-3.10%E2%80%933.12-8b8b94.svg)
+![Node 20+](https://img.shields.io/badge/node-20%2B-8b8b94.svg)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-7c5cfc.svg)](CONTRIBUTING.md)
 
-[**Live demo**](https://ale-newport.github.io/MelodyAI/) · [Quick start](#quick-start) · [Commands](#commands) · [How it works](#how-it-works) · [Results](#results) · [Documentation](#documentation)
+[**Try the live demo**](https://ale-newport.github.io/MelodyAI/) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Results](#results) · [Documentation](#documentation) · [Contributing](CONTRIBUTING.md)
 
 </div>
-
-![MelodyAI: a hummed chorus recognised with high confidence](docs/screenshots/recognize-result.jpg)
 
 ## Overview
 
@@ -49,37 +53,23 @@ own humming, run MelodyAI locally.
 
 ## Quick start
 
-**Requirements:** Python 3.11 (3.10–3.12), Node.js 18+, `make`. Optional: [uv](https://github.com/astral-sh/uv) for faster
+**Requirements:** Python 3.11 (3.10–3.12), Node.js 20+, `make`. Optional: [uv](https://github.com/astral-sh/uv) for faster
 installs and `ffmpeg` for MP3/M4A uploads. No GPU, database server, Docker or API key is needed.
 
-```bash
-git clone https://github.com/Ale-Newport/MelodyAI.git
-```
+One command installs everything, imports the demo catalog and starts the app:
 
 ```bash
-cd MelodyAI
+git clone https://github.com/Ale-Newport/MelodyAI.git && cd MelodyAI && make quickstart
 ```
 
-```bash
-make setup
-```
-
-```bash
-make demo-data
-```
-
-```bash
-make dev
-```
+Open **http://127.0.0.1:5173**, play a song under **Practice with the catalog**, press the microphone and hum any part
+of it. `Ctrl-C` stops both servers. `make quickstart` runs these three steps, which you can also run one at a time:
 
 | Step | What it does | Time |
 |---|---|---|
 | `make setup` | Creates `.venv` (uv or venv), installs the engine, API and all extras, and the frontend packages | a few minutes |
 | `make demo-data` | Generates and imports the 48 original demo songs | ~10 s |
 | `make dev` | Starts the API on http://127.0.0.1:8000 (OpenAPI at `/docs`) and the web app on http://127.0.0.1:5173 | — |
-
-Open **http://127.0.0.1:5173**, play a song under **Practice with the catalog**, press the microphone and hum any part
-of it. `Ctrl-C` stops both servers.
 
 <details>
 <summary><b>Minimal install, Docker and Windows</b></summary>
@@ -96,7 +86,7 @@ Docker (API and the built web app on one port, CPU only):
 docker compose up --build
 ```
 
-Then open http://localhost:8000. On Windows, use WSL or the equivalent commands in
+Then open http://localhost:8000 (the port is published on `127.0.0.1` only: the API has no login). On Windows, use WSL or the equivalent commands in
 [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 </details>
@@ -132,6 +122,7 @@ Run `make help` for the full list.
 
 | Command | Description |
 |---|---|
+| `make quickstart` | `setup` + `demo-data` + `dev` in one go |
 | `make dev` | API + web app with hot reload |
 | `make backend` / `make frontend` | Run only one of them |
 | `make test` | All Python tests (including slow audio end-to-end tests) and frontend tests |
@@ -243,7 +234,8 @@ thresholds tuned on a dev half, reported on the test half.
 - **Spotify / TikTok audio cannot be indexed:** their terms forbid it. See [docs/SCALING.md](docs/SCALING.md).
 - **Polyphonic references** (produced commercial mixes) are not solved; the experimental path was tested only on simple
   synthetic mixes.
-- **Not validated here:** real microphone capture across devices, Safari/Firefox, Windows/Linux, Docker, PostgreSQL.
+- **Not validated here:** real microphone capture across devices, Safari/Firefox, Windows, PostgreSQL. (Linux, macOS
+  and the Docker image are built and tested in CI.)
 
 Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 
@@ -261,7 +253,16 @@ Full list: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 | [OPEN_WORLD](docs/OPEN_WORLD.md) · [WORLD_RESULTS](docs/WORLD_RESULTS.md) | Real songs by their words; real-song evaluation |
 | [LAKH](docs/LAKH.md) | Humming real songs with the Lakh MIDI melody index |
 | [API](docs/API.md) | REST endpoints (OpenAPI at `/docs`) |
-| [LIMITATIONS](docs/LIMITATIONS.md) · [CONTRIBUTING](docs/CONTRIBUTING.md) | What is verified or missing; how to contribute |
+| [LIMITATIONS](docs/LIMITATIONS.md) · [CONTRIBUTING](CONTRIBUTING.md) | What is verified or missing; how to contribute |
+
+## Contributing
+
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) and the issues labelled
+[`good first issue`](https://github.com/Ale-Newport/MelodyAI/issues?q=is%3Aopen+label%3A%22good+first+issue%22) and
+[`help wanted`](https://github.com/Ale-Newport/MelodyAI/issues?q=is%3Aopen+label%3A%22help+wanted%22). Questions and
+ideas go to [Discussions](https://github.com/Ale-Newport/MelodyAI/discussions); security reports to
+[SECURITY.md](SECURITY.md). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md). Release notes are
+in [CHANGELOG.md](CHANGELOG.md).
 
 ## Credits
 

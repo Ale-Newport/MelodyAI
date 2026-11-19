@@ -1,0 +1,33 @@
+# Normalise line endings; scripts must keep LF on every platform.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp3 binary
+*.wav binary
+*.flac binary
+*.ogg binary
+*.mid binary
+*.midi binary
+*.npz binary
+*.npy binary
+*.pt binary
+*.db binary
+*.woff binary
+*.woff2 binary
+
+# Generated or vendored files: collapsed in diffs and excluded from language statistics
+frontend/package-lock.json linguist-generated=true -diff
+experiments/runs/** linguist-generated=true
+frontend/public/demo/** linguist-generated=true
+docs/RESULTS.md linguist-generated=true
+docs/SCALE_RESULTS.md linguist-generated=true
+docs/WORLD_RESULTS.md linguist-generated=true
+notebooks/** linguist-documentation=true

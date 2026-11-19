@@ -1,0 +1,23 @@
+name: Improvement
+description: Make something that exists better (docs, UX, accessibility, performance, tests, developer experience)
+labels: [improvement, triage]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options: [Documentation, UX / accessibility, Performance, Tests, Developer experience, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What is there today and why it falls short
+    validations:
+      required: true
+  - type: textarea
+    id: better
+    attributes:
+      label: What would be better
+    validations:
+      required: true

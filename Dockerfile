@@ -26,4 +26,5 @@ ENV MELODYAI_STORE_DIR=/data/store MELODYAI_DATA_DIR=/data MELODYAI_EXPERIMENTS_
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=4)" || exit 1
-CMD ["sh", "-c", "python -m melodyai.cli status >/dev/null 2>&1; [ -f /data/store/catalog.db ] || python -m melodyai.cli demo-data; exec uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000"]
+# Import the demo catalog once per volume (a marker file, since other commands create catalog.db empty).
+CMD ["sh", "-c", "[ -f /data/store/.demo-imported ] || { python -m melodyai.cli demo-data && touch /data/store/.demo-imported; }; exec uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000"]

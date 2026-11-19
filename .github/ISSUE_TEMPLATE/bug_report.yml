@@ -1,19 +1,46 @@
 name: Bug report
 description: Something does not work as documented
-labels: [bug]
+labels: [bug, triage]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! Please do **not** attach recordings of other people or copyrighted audio.
+        Security problems go to [a private report](https://github.com/Ale-Newport/MelodyAI/security/advisories/new).
   - type: textarea
     id: what
     attributes:
       label: What happened?
-      description: Steps to reproduce, expected vs actual behaviour. Do NOT attach recordings of other people or copyrighted audio.
+      description: What you did, what you expected and what happened instead.
     validations:
       required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. make setup && make demo-data && make dev
+        2. Open Recognize, hum demo song 12 for 8 s
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: "v0.1.0 or the output of `git rev-parse --short HEAD`"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Recognition (humming / whistling), Lyrics / open world, Clip fingerprinting, Web app, API, Install / Docker, Benchmark / training, Other]
   - type: input
     id: env
     attributes:
       label: Environment
-      placeholder: "macOS 15 / Apple M2, Python 3.11, Chrome 131"
+      placeholder: "macOS 15 / Apple M2, Python 3.11, Chrome 131 (or Docker)"
   - type: textarea
     id: logs
     attributes:

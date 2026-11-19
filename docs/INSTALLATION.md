@@ -5,7 +5,7 @@
 | | Required | Notes |
 |---|---|---|
 | Python | 3.10–3.12 (3.11 recommended) | 3.13 is not yet supported by every audio/ML dependency |
-| Node.js | 18+ (tested with 26) | for the web UI |
+| Node.js | 20+ (tested with 22 and 26) | for the web UI |
 | ffmpeg | optional | decodes M4A/AAC/WebM uploads; WAV/MP3/FLAC/OGG work without it |
 | uv | optional | faster installs; `make setup` uses it when present |
 | GPU | not required | PyTorch uses Apple MPS or CUDA when available, otherwise CPU |
@@ -131,4 +131,7 @@ macOS 27 on Apple Silicon (arm64), Python 3.11.15, Node 26, Chromium-based in-ap
 The Python test suite, the frontend tests/type-check/build, the full benchmark and UI flows driven
 by browser automation (file upload path) ran there. The `standard` and `large` popular-songs syncs and the
 open-world evaluation (with Whisper `large-v3-turbo`) ran there too. Real microphone
-recording, Safari, Firefox, Windows, Linux and Docker were **not** validated and need manual checking.
+recording, Safari, Firefox and Windows were **not** validated and need manual checking.
+
+Continuous integration additionally runs the Python test suite on Ubuntu (Python 3.11 and 3.12) and macOS, the
+frontend checks, and builds the Docker image and checks that the containerised API starts with the demo catalog.
