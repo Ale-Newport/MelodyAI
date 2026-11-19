@@ -1,6 +1,6 @@
 # CPU image: classical engine + API + built frontend. Whisper models are not baked in.
 # Build: docker build -t melodyai .   Run: docker compose up (binds to 127.0.0.1:8000 only)
-FROM node:22-slim AS web
+FROM node:26-slim AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
