@@ -82,12 +82,17 @@ class AppState:
         self._neural_lock = threading.Lock()
         default = models_dir() / "melody_encoder.pt"
         if settings.load_neural_model and default.exists():
-            self.activate_neural(f"models/{default.name}")
+            try:
+                self.activate_neural(f"models/{default.name}")
+            except Exception as e:
+                if self.neural_error is None:
+                    self.neural_error = str(e)
+                    log.exception("could not activate the default neural model")
 
     def apply_user_settings(self) -> None:
         us = self.user_settings.get()
         s = self.engine.settings
-        s.melody_algorithm = us.melody_algorithm if us.melody_algorithm in self.engine.algorithms else "ensemble"
+        s.melody_algorithm = us.melody_algorithm
         s.pitch_extractor = us.pitch_extractor
         s.fusion_method = us.fusion_method
         s.asr_enabled = us.asr_enabled
@@ -142,8 +147,9 @@ class AppState:
                 info = attach_neural(self.engine, self.catalog, match[0]["path"], self.catalog.root)
                 info["checkpoint"] = checkpoint_id
                 self.neural, self.neural_error = info, None
+                return info
             except Exception as e:  # torch missing, incompatible checkpoint...
+                detach_neural(self.engine)
                 log.exception("could not load neural model")
                 self.neural, self.neural_error = None, str(e)
                 raise
-        return self.neural
