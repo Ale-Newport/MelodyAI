@@ -23,6 +23,7 @@ class ServerSettings(BaseSettings):
     store_dir: str | None = None              # defaults to data/store
     max_upload_mb: float = 20.0               # recognition / analysis uploads
     max_reference_mb: float = 60.0            # catalog imports
+    max_bulk_mb: float = 600.0                # all files of one bulk import together (they are held in memory)
     max_query_seconds: float = 60.0
     min_query_seconds: float = 0.5
     max_concurrent_recognitions: int = 2

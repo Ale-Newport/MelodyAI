@@ -149,5 +149,10 @@ def get_extractor(name: str = "pyin"):
     return ext
 
 
+def available_extractors() -> set[str]:
+    """Names of the pitch extractors that can run in this installation."""
+    return {e.name for e in EXTRACTORS.values() if e.available()}
+
+
 def list_extractors() -> list[dict]:
     return [{"name": e.name, "label": e.label, "available": e.available()} for e in EXTRACTORS.values()]

@@ -167,14 +167,20 @@ async def bulk_import(manifest: UploadFile = File(...), files: list[UploadFile] 
                       state: AppState = Depends(get_state)):
     try:
         rows = parse_metadata(await read_upload(manifest, 2), manifest.filename or "metadata.csv")
-    except (ImportErrorMelody, ValueError, KeyError) as e:
-        raise HTTPException(422, f"Invalid manifest: {e}") from e
+    except ImportErrorMelody as e:
+        raise HTTPException(422, f"Invalid manifest: {e.public_message}") from e
+    except (ValueError, KeyError) as e:
+        raise HTTPException(422, "Invalid manifest: check its columns and values") from e
     if len(files) > 200:
         raise HTTPException(413, "At most 200 files per import")
-    blobs = {}
+    blobs, total = {}, 0
     for f in files:
         name = Path(f.filename or "").name
         blobs[name] = await read_upload(f, state.settings.max_reference_mb)
+        total += len(blobs[name])
+        if total > state.settings.max_bulk_mb * 1024 * 1024:
+            raise HTTPException(413, f"Bulk import too large (limit {state.settings.max_bulk_mb:.0f} MB in total; "
+                                     "split it into several imports)")
     results = []
     for row in rows:
         ref_name = Path(row.get("reference_file") or "").name
@@ -193,7 +199,7 @@ async def bulk_import(manifest: UploadFile = File(...), files: list[UploadFile] 
         except DuplicateSongError as e:
             results.append({"title": row["title"], "status": "duplicate", "id": e.existing_id})
         except ImportErrorMelody as e:
-            results.append({"title": row["title"], "status": "error", "error": str(e)})
+            results.append({"title": row["title"], "status": "error", "error": e.public_message})
     state.catalog.flush_indexes()
     return {"results": results}
 

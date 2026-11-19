@@ -11,6 +11,18 @@ All notable changes to MelodyAI are documented here. The format follows
 - Restore the saved melody matcher when its neural checkpoint is available. Recognition and Melody Explorer
   use the classical ensemble while a checkpoint loads or after a load failure.
 - Cancelling a pending microphone request or leaving the page releases any stream that arrives later. The recorder ignores duplicate starts and retries with the default microphone if a saved device is unavailable.
+- Library: song audio stops when you leave the page and no longer overlaps other previews (#11).
+- Add Song: the dialog starts empty each time (a previous lyrics file was attached to the next song), and MIDI
+  files are always sent as `midi` (#12).
+- A newly chosen microphone takes effect immediately instead of after a reload (#13).
+- Pitch extractors are validated: an unavailable one is refused in Settings and in requests (422 instead of 500),
+  and a saved one that is no longer installed falls back to pYIN (#17).
+
+### Security
+
+- Bulk imports are limited in total size (`MELODYAI_MAX_BULK_MB`, default 600 MB), and uploads are decoded only
+  inside the recognition slots, so concurrent requests cannot exhaust memory (#16).
+- Import errors no longer echo the text of a library's own exceptions to the client.
 
 ## [0.1.0] - 2026-11-19
 

@@ -5,11 +5,14 @@ from __future__ import annotations
 import csv
 import io
 import json
+import logging
 from dataclasses import dataclass
 
 import numpy as np
 
 from melodyai.features.melody import NoteSequence
+
+log = logging.getLogger(__name__)
 
 MIDI_EXTENSIONS = {".mid", ".midi"}
 AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".oga", ".opus", ".m4a", ".mp4", ".aac", ".webm"}
@@ -18,7 +21,15 @@ METADATA_FIELDS = ("title", "artist", "album", "year", "language", "composition_
 
 
 class ImportErrorMelody(ValueError):
-    pass
+    """A reference, lyrics file or manifest that cannot be imported.
+
+    ``public_message`` is written for the user and never contains text from a library's own exception (which
+    can include internal paths or parser state); that detail is logged instead.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.public_message = message
 
 
 @dataclass
@@ -61,7 +72,8 @@ def load_midi_melody(data: bytes, track: int | None = None) -> MidiMelody:
     try:
         pm = pretty_midi.PrettyMIDI(io.BytesIO(data))
     except Exception as e:
-        raise ImportErrorMelody(f"Invalid MIDI file: {e}") from e
+        log.info("MIDI parse error: %s", e)
+        raise ImportErrorMelody("Invalid MIDI file: it could not be parsed") from e
     insts = [(i, inst) for i, inst in enumerate(pm.instruments) if not inst.is_drum and inst.notes]
     if not insts:
         raise ImportErrorMelody("MIDI file contains no pitched notes")
@@ -115,7 +127,7 @@ def parse_lyrics(data: bytes, filename: str = "lyrics.txt") -> dict:
         try:
             obj = json.loads(raw)
         except json.JSONDecodeError as e:
-            raise ImportErrorMelody(f"Invalid lyrics JSON: {e}") from e
+            raise ImportErrorMelody(f"Invalid lyrics JSON (line {e.lineno}, column {e.colno})") from e
         if not isinstance(obj, dict):
             raise ImportErrorMelody('Lyrics JSON must be an object: {"text": "..."} or {"lines": [...]}')
         text, lines = obj.get("text"), obj.get("lines", [])
@@ -137,12 +149,15 @@ def parse_lyrics(data: bytes, filename: str = "lyrics.txt") -> dict:
 
 def parse_metadata(data: bytes, filename: str) -> list[dict]:
     """Parse a CSV or JSON manifest into a list of song metadata dicts."""
-    raw = data.decode("utf-8-sig")
+    try:
+        raw = data.decode("utf-8-sig")
+    except UnicodeDecodeError as e:
+        raise ImportErrorMelody("The manifest must be UTF-8 text") from e
     if filename.lower().endswith(".json"):
         try:
             obj = json.loads(raw)
         except json.JSONDecodeError as e:
-            raise ImportErrorMelody(f"Invalid manifest JSON: {e}") from e
+            raise ImportErrorMelody(f"Invalid manifest JSON (line {e.lineno}, column {e.colno})") from e
         rows = obj.get("songs") if isinstance(obj, dict) else obj
         if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
             raise ImportErrorMelody('Manifest JSON must be a list of objects or {"songs": [...]}')

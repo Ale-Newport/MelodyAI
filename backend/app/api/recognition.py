@@ -12,6 +12,7 @@ from app.api.deps import get_state, read_upload, safe_id
 from app.core.state import AppState
 from melodyai.audio.io import AudioError, decode_audio, write_wav
 from melodyai.catalog.models import Recognition
+from melodyai.pitch.extractors import available_extractors
 
 router = APIRouter(prefix="/api", tags=["recognition"])
 
@@ -36,22 +37,27 @@ async def _recognize(state: AppState, mode: str, audio: UploadFile | None, text:
                      fusion_method: str | None, retain_audio: bool) -> dict:
     s = state.settings
     us = state.user_settings.get()
-    decoded = None
-    raw = None
-    if audio is not None:
-        raw = await read_upload(audio, s.max_upload_mb)
-        try:
-            decoded = await run_in_threadpool(decode_audio, raw, 16000, int(s.max_upload_mb * 1024 * 1024),
-                                              s.max_query_seconds, s.min_query_seconds)
-        except AudioError as e:
-            raise HTTPException(422, str(e)) from e
-    if decoded is None and not (text and text.strip()):
+    raw = await read_upload(audio, s.max_upload_mb) if audio is not None else None
+    if raw is None and not (text and text.strip()):
         raise HTTPException(422, "Provide an audio recording or some lyrics text")
     if text and len(text) > 2000:
         raise HTTPException(422, "Text too long (max 2000 characters)")
     if algorithm and algorithm not in state.engine.algorithms:
         raise HTTPException(422, f"Unknown algorithm '{algorithm}'")
+    available = available_extractors()
+    if pitch_extractor and pitch_extractor not in available:
+        raise HTTPException(422, f"Pitch extractor '{pitch_extractor}' is not available in this installation")
+    if not pitch_extractor and us.pitch_extractor not in available:
+        pitch_extractor = "pyin"           # a saved extractor that is no longer installed: use the default
+    decoded = None
+    # Decoding happens inside the recognition slots too, so concurrent uploads cannot all decode at once.
     async with state.recognition_slots:
+        if raw is not None:
+            try:
+                decoded = await run_in_threadpool(decode_audio, raw, 16000, int(s.max_upload_mb * 1024 * 1024),
+                                                  s.max_query_seconds, s.min_query_seconds)
+            except AudioError as e:
+                raise HTTPException(422, str(e)) from e
         try:
             res = await run_in_threadpool(
                 state.engine.recognize, decoded, text, mode, algorithm, language or us.asr_language,

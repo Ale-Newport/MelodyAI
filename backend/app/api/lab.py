@@ -28,7 +28,7 @@ from melodyai.lyrics.asr import (
     model_status,
     resolve_model,
 )
-from melodyai.pitch.extractors import list_extractors
+from melodyai.pitch.extractors import available_extractors, list_extractors
 
 router = APIRouter(prefix="/api", tags=["lab"])
 RUN_ID = re.compile(r"^[0-9]{8}T[0-9]{6}Z-[A-Za-z0-9_\-]{1,40}$")
@@ -48,12 +48,7 @@ async def analyze_audio(
     state: AppState = Depends(get_state),
 ):
     raw = await read_upload(audio, state.settings.max_upload_mb)
-    try:
-        dec = await run_in_threadpool(decode_audio, raw, 16000, None, state.settings.max_query_seconds,
-                                      state.settings.min_query_seconds)
-    except AudioError as e:
-        raise HTTPException(422, str(e)) from e
-    if extractor not in {e["name"] for e in list_extractors() if e["available"]}:
+    if extractor not in available_extractors():
         raise HTTPException(422, f"Pitch extractor '{extractor}' not available")
     if song_id:
         safe_id(song_id)
@@ -63,7 +58,12 @@ async def analyze_audio(
         c = alg.search(q, state.catalog.melody_index, 1)
         return c[0].to_dict() if c else None
 
-    async with state.recognition_slots:
+    async with state.recognition_slots:     # decode inside the slots: bounded concurrent decoding
+        try:
+            dec = await run_in_threadpool(decode_audio, raw, 16000, None, state.settings.max_query_seconds,
+                                          state.settings.min_query_seconds)
+        except AudioError as e:
+            raise HTTPException(422, str(e)) from e
         out = await run_in_threadpool(analyze, dec, profile, extractor, state.catalog.melody_index, song_id,
                                       match_fn if match else None)
     if "comparison" in out:
@@ -321,6 +321,8 @@ def get_settings(state: AppState = Depends(get_state)):
 
 @router.put("/settings")
 def put_settings(patch: dict = Body(...), state: AppState = Depends(get_state)):
+    if "pitch_extractor" in patch and patch["pitch_extractor"] not in available_extractors():
+        raise HTTPException(422, f"Pitch extractor '{patch['pitch_extractor']}' is not available in this installation")
     try:
         s = state.user_settings.update(patch)
     except ValueError as e:
