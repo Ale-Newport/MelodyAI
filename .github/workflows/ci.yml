@@ -4,19 +4,52 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+      - run: pip install "ruff>=0.5"
+      - run: ruff check melodyai backend tests scripts
+
   python:
+    name: Python (${{ matrix.os }}, ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14]
+        include:
+          - { os: ubuntu-latest, python: "3.11" }
+          - { os: ubuntu-latest, python: "3.12" }
+          - { os: macos-latest, python: "3.11" }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.11"
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            backend/pyproject.toml
       - name: System packages
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
@@ -25,13 +58,12 @@ jobs:
           python -m pip install -U pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu || pip install torch
           pip install -e ".[dev]" -e backend faiss-cpu tensorboard matplotlib
-      - name: Lint
-        run: ruff check melodyai backend tests scripts
       - name: Tests (no network, no Whisper model)
         env:
           MELODYAI_DEVICE: cpu
         run: pytest -q -m "not asr"
       - name: Quick benchmark (smoke)
+        if: matrix.python == '3.11' && runner.os == 'Linux'
         env:
           MELODYAI_DEVICE: cpu
         run: |
@@ -39,15 +71,46 @@ jobs:
           python -m melodyai.cli evaluate --config configs/eval_quick.yaml
 
   frontend:
+    name: Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "20"
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-        working-directory: frontend
-      - run: npm run typecheck && npm test && npm run build
-        working-directory: frontend
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:pages
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: docker build -t melodyai:ci .
+      - name: Start and check the API answers
+        run: |
+          docker run -d --name melodyai -p 127.0.0.1:8000:8000 melodyai:ci
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/api/health; then echo; break; fi
+            sleep 5
+          done
+          curl -fsS http://localhost:8000/api/health | python3 -c 'import json,sys; n=json.load(sys.stdin)["songs"]; print(n, "songs"); assert n > 0'
+          curl -fsS -o /dev/null http://localhost:8000/
+      - name: Container logs
+        if: always()
+        run: docker logs melodyai 2>&1 | tail -50

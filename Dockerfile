@@ -1,5 +1,6 @@
 # CPU image: classical engine + API + built frontend. Whisper models are not baked in.
-FROM node:20-slim AS web
+# Build: docker build -t melodyai .   Run: docker compose up (binds to 127.0.0.1:8000 only)
+FROM node:22-slim AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -17,6 +18,12 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 COPY configs ./configs
 COPY models ./models
 COPY --from=web /web/dist ./frontend/dist
-ENV MELODYAI_STORE_DIR=/data/store MELODYAI_DEVICE=cpu
+# Run as an unprivileged user; /data (the catalog store) is the only writable location.
+RUN useradd --create-home --uid 10001 melodyai && mkdir -p /data/store && chown -R melodyai:melodyai /data /app/models
+USER melodyai
+ENV MELODYAI_STORE_DIR=/data/store MELODYAI_DATA_DIR=/data MELODYAI_EXPERIMENTS_DIR=/data/experiments \
+    MELODYAI_DEVICE=cpu NUMBA_CACHE_DIR=/tmp/numba-cache
 EXPOSE 8000
-CMD ["sh", "-c", "python -m melodyai.cli status >/dev/null 2>&1; [ -f /data/store/catalog.db ] || python -m melodyai.cli demo-data; uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=4)" || exit 1
+CMD ["sh", "-c", "python -m melodyai.cli status >/dev/null 2>&1; [ -f /data/store/catalog.db ] || python -m melodyai.cli demo-data; exec uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000"]
