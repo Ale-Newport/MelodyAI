@@ -72,6 +72,11 @@ export function stopPreview(key?: string) {
   setPlaying(null);
 }
 
+/** Stops playback if the active preview's key starts with `prefix` (e.g. when the page that started it closes). */
+export function stopPreviewsWithPrefix(prefix: string) {
+  if (currentKey?.startsWith(prefix)) stopPreview(currentKey);
+}
+
 function subscribe(l: () => void) {
   listeners.add(l);
   return () => listeners.delete(l);

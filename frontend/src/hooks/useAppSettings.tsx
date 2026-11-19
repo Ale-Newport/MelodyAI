@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import type { UserSettings } from "@/types/api";
@@ -46,7 +46,7 @@ function readLocal(): Partial<UserSettings> {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["settings"], queryFn: api.settings, staleTime: Infinity, retry: 1 });
-  const local = useMemo(readLocal, []);
+  const [local, setLocal] = useState(readLocal);
   // The microphone is a per-device choice: keep it in this browser only.
   const settings: UserSettings = { ...DEFAULTS, ...(q.data ?? {}), microphone_id: local.microphone_id ?? null, ...(q.data ? {} : local) };
 
@@ -58,8 +58,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const update = useCallback(
     async (patch: Partial<UserSettings>) => {
       if ("microphone_id" in patch) {
+        const next = { ...readLocal(), microphone_id: patch.microphone_id };
+        setLocal(next); // takes effect now, not only after a reload
         try {
-          localStorage.setItem("melodyai.settings", JSON.stringify({ ...readLocal(), microphone_id: patch.microphone_id }));
+          localStorage.setItem("melodyai.settings", JSON.stringify(next));
         } catch {
           /* storage unavailable */
         }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Copy, Database, FileMusic, Pencil, Play, Pause, Plus, RefreshCw, Trash2, Upload, Wand2 } from "lucide-react";
 import { api } from "@/services/api";
@@ -8,35 +8,51 @@ import { useJob } from "@/hooks/useJob";
 import { Badge, Button, Card, Dialog, ErrorBox, Field, Input, Progress, Select, Skeleton, Stat, Textarea } from "@/components/ui/primitives";
 import { cn, formatTime } from "@/lib/utils";
 import { DEMO } from "@/lib/demo";
+import { stopPreviewsWithPrefix, togglePreview, usePreviewActive } from "@/lib/preview";
 
 const STATUS_TONE = { indexed: "neutral", pending: "neutral", processing: "strong", error: "brand", stale: "brand" } as const;
+const LIBRARY_PREVIEW = "library:";
 const REF_TYPES = ["midi", "monophonic_audio", "vocal_audio", "instrumental_audio", "polyphonic_audio"];
+
+const EMPTY_SONG_FORM = { title: "", artist: "", album: "", year: "", language: "", reference_type: "", license: "", source: "", listen_url: "", lyrics_text: "", lyrics_language: "en" };
 
 function AddSongDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [lyricsFile, setLyricsFile] = useState<File | null>(null);
-  const [f, setF] = useState({ title: "", artist: "", album: "", year: "", language: "", reference_type: "", license: "", source: "", listen_url: "", lyrics_text: "", lyrics_language: "en" });
+  const [f, setF] = useState(EMPTY_SONG_FORM);
+  // Bumped on close: remounts the form so the (uncontrolled) file inputs are cleared with the state.
+  const [formKey, setFormKey] = useState(0);
+  const isMidi = !!file && /\.midi?$/i.test(file.name);
   const m = useMutation({
     mutationFn: () => {
       const fd = new FormData();
       fd.set("reference", file!);
       Object.entries(f).forEach(([k, v]) => v && fd.set(k, v));
+      // A MIDI file is always "midi", whatever was picked for an earlier audio file.
+      fd.set("reference_type", isMidi ? "midi" : f.reference_type || "monophonic_audio");
       if (lyricsFile) fd.set("lyrics_file", lyricsFile);
       return api.addSong(fd);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["songs"] });
       qc.invalidateQueries({ queryKey: ["catalog-status"] });
-      onOpenChange(false);
-      setFile(null);
+      close();
     },
   });
+  const close = () => {
+    setFile(null);
+    setLyricsFile(null);
+    setF(EMPTY_SONG_FORM);
+    setFormKey((k) => k + 1);
+    m.reset();
+    onOpenChange(false);
+  };
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
-  const isMidi = file && /\.midi?$/i.test(file.name);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Add a song" description="MIDI melodies or audio references. Only import material you are allowed to use." wide>
+    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())} title="Add a song" description="MIDI melodies or audio references. Only import material you are allowed to use." wide>
       <form
+        key={formKey}
         className="grid gap-4 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
@@ -76,7 +92,7 @@ function AddSongDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         </div>
         {m.isError && <div className="sm:col-span-2"><ErrorBox error={m.error} /></div>}
         <div className="flex justify-end gap-2 sm:col-span-2">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="button" variant="ghost" onClick={close}>Cancel</Button>
           <Button type="submit" variant="primary" loading={m.isPending} disabled={!file || !f.title}>Import & index</Button>
         </div>
       </form>
@@ -203,8 +219,11 @@ export default function LibraryPage() {
   const [editing, setEditing] = useState<Song | null>(null);
   const [deleting, setDeleting] = useState<Song | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [playing, setPlaying] = useState<string | null>(null);
-  const audio = useRef<HTMLAudioElement | null>(null);
+  // Song audio plays through the shared preview player, so starting it stops any other preview, and
+  // leaving the page stops it.
+  const activePreview = usePreviewActive();
+  const playing = activePreview?.startsWith(LIBRARY_PREVIEW) ? activePreview.slice(LIBRARY_PREVIEW.length) : null;
+  useEffect(() => () => stopPreviewsWithPrefix(LIBRARY_PREVIEW), []);
   const songs = useQuery({ queryKey: ["songs", q, status], queryFn: () => api.songs(q, status === "all" ? "" : status) });
   const st = useQuery({ queryKey: ["catalog-status"], queryFn: api.catalogStatus });
   const dups = useQuery({ queryKey: ["duplicates"], queryFn: api.duplicates });
@@ -227,13 +246,7 @@ export default function LibraryPage() {
     if (sort === "duration") list.sort((a, b) => (b.duration_s ?? 0) - (a.duration_s ?? 0));
     return list;
   }, [songs.data, sort]);
-  const play = (id: string) => {
-    audio.current?.pause();
-    if (playing === id) return setPlaying(null);
-    audio.current = new Audio(api.songAudioUrl(id));
-    audio.current.onended = () => setPlaying(null);
-    audio.current.play().then(() => setPlaying(id)).catch(() => setPlaying(null));
-  };
+  const play = (id: string) => togglePreview(LIBRARY_PREVIEW + id, api.songAudioUrl(id));
   const running = job.data && !["completed", "failed", "cancelled", "interrupted"].includes(job.data.status);
 
   return (
