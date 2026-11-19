@@ -25,6 +25,12 @@ from melodyai.config import ANALYSIS_SR
 SUPPORTED_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".oga", ".opus", ".m4a", ".mp4", ".aac", ".webm"}
 
 
+# Upper bound on decoded audio whatever the caller's limit: compressed silence (FLAC) or a tiny sample rate
+# can make a small file decode to hours of samples, so durations are checked from the header before decoding.
+HARD_MAX_SECONDS = 2 * 60 * 60
+MIN_SAMPLE_RATE = 4000
+
+
 class AudioError(ValueError):
     """Raised for invalid, empty, undecodable or out-of-limits audio."""
 
@@ -44,18 +50,23 @@ def ffmpeg_available() -> bool:
     return shutil.which("ffmpeg") is not None
 
 
-def _decode_soundfile(data: bytes) -> tuple[np.ndarray, int, str]:
+def _decode_soundfile(data: bytes, max_seconds: float = HARD_MAX_SECONDS) -> tuple[np.ndarray, int, str]:
     with sf.SoundFile(io.BytesIO(data)) as f:
+        if f.samplerate < MIN_SAMPLE_RATE:
+            raise AudioError(f"Sample rate too low ({f.samplerate} Hz < {MIN_SAMPLE_RATE} Hz)")
+        if f.frames > 0 and f.frames / f.samplerate > max_seconds:
+            raise AudioError(f"Audio too long ({f.frames / f.samplerate:.1f}s > {max_seconds:.0f}s)")
         y = f.read(dtype="float32", always_2d=True)
         return y, f.samplerate, (f.format or "unknown").lower()
 
 
-def _decode_ffmpeg(data: bytes, sr: int, timeout: float = 60.0) -> np.ndarray:
+def _decode_ffmpeg(data: bytes, sr: int, timeout: float = 60.0, max_seconds: float = HARD_MAX_SECONDS) -> np.ndarray:
     if not ffmpeg_available():
         raise AudioError("Unsupported or corrupt audio (ffmpeg not available for fallback decoding)")
     cmd = [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin",
-        "-i", "pipe:0", "-vn", "-ac", "1", "-ar", str(sr), "-f", "f32le", "pipe:1",
+        "-i", "pipe:0", "-t", f"{max_seconds + 1:.0f}",       # stop decoding just past the limit
+        "-vn", "-ac", "1", "-ar", str(sr), "-f", "f32le", "pipe:1",
     ]
     try:
         proc = subprocess.run(cmd, input=data, capture_output=True, timeout=timeout, check=False)
@@ -92,12 +103,15 @@ def decode_audio(
     if max_bytes is not None and len(data) > max_bytes:
         raise AudioError(f"Audio file too large ({len(data) / 1e6:.1f} MB > {max_bytes / 1e6:.0f} MB)")
     fmt = "unknown"
+    limit = min(HARD_MAX_SECONDS, max_duration + 0.5) if max_duration is not None else HARD_MAX_SECONDS
     try:
-        y2, orig_sr, fmt = _decode_soundfile(data)
+        y2, orig_sr, fmt = _decode_soundfile(data, limit)
         y = y2.mean(axis=1) if y2.shape[1] > 1 else y2[:, 0]
         y = resample(y, orig_sr, sr)
+    except AudioError:
+        raise                                     # a limit was hit: do not retry with ffmpeg
     except (RuntimeError, sf.LibsndfileError, TypeError, ValueError):
-        y = _decode_ffmpeg(data, sr)
+        y = _decode_ffmpeg(data, sr, max_seconds=limit)
         fmt = "ffmpeg"
     y = np.nan_to_num(np.asarray(y, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
     audio = Audio(samples=np.clip(y, -1.0, 1.0), sr=sr, source_format=fmt)

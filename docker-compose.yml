@@ -3,7 +3,8 @@ services:
   melodyai:
     build: .
     ports:
-      - "8000:8000"         # open http://localhost:8000
+      # Bound to this machine only: the API has no login, so it must not be reachable from the network.
+      - "127.0.0.1:8000:8000"   # open http://localhost:8000
     volumes:
       - melodyai-data:/data
     environment:

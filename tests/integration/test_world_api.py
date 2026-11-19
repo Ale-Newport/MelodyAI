@@ -426,6 +426,29 @@ def test_cross_site_requests_are_refused(ctx):
     assert c.get("/api/world/status").status_code == 200
 
 
+def test_unknown_host_headers_are_refused(ctx):
+    """DNS rebinding: a page on evil.example re-pointed at 127.0.0.1 sends ``Host: evil.example``."""
+    c, _, online, _ = ctx
+    before = online.count()
+    for host in ("evil.example", "evil.example:8000", "127.0.0.1.evil.example"):
+        r = c.post("/api/world/search", json={"q": lines(PARADE, 0, 2)},
+                   headers={"Host": host, "Origin": f"http://{host}"})
+        assert r.status_code == 400
+    assert online.count() == before
+    for host in ("localhost:8000", "127.0.0.1", "[::1]:8000", "LOCALHOST"):
+        assert c.get("/api/world/status", headers={"Host": host}).status_code == 200
+
+
+def test_host_name_parsing():
+    from app.main import host_name
+
+    assert host_name("[::1]:8000") == "::1"
+    assert host_name("Localhost:5173") == "localhost"
+    assert host_name("127.0.0.1") == "127.0.0.1"
+    assert host_name("::1") == "::1"
+    assert host_name("") == ""
+
+
 def test_preview_redirects_to_a_fresh_deezer_url(ctx):
     c, state, _, _ = ctx
     r = c.get("/api/world/preview/7001", follow_redirects=False)

@@ -27,6 +27,9 @@ class ServerSettings(BaseSettings):
     min_query_seconds: float = 0.5
     max_concurrent_recognitions: int = 2
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    # Host names the server answers to (comma-separated, "*" = any). Refusing other Host headers stops DNS
+    # rebinding: a web page whose domain is re-pointed at 127.0.0.1 would otherwise count as same-origin.
+    allowed_hosts: str = "localhost,127.0.0.1,::1"
     allow_model_download: bool = False        # Whisper model downloads must be enabled explicitly
     serve_frontend: bool = True               # serve frontend/dist if it exists
     load_neural_model: bool = True            # load models/melody_encoder.pt at startup if present

@@ -23,6 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 from sqlalchemy import func, select
 
 from melodyai.audio.io import AudioError, decode_audio
@@ -89,7 +90,11 @@ def compute_song(song_id: str, reference_type: str, data: bytes, extra: dict | N
     extra = extra or {}
     if reference_type == "midi":
         mel = load_midi_melody(data, extra.get("midi_track"))
-        samples = decode_audio(preview).samples if preview else None
+        end = float(np.max(mel.notes.onsets + mel.notes.durations)) if len(mel.notes.onsets) else 0.0
+        if end > MAX_REFERENCE_SECONDS:      # rendering the reference allocates samples for its whole length
+            raise ImportErrorMelody(f"MIDI melody too long ({end:.0f}s > {MAX_REFERENCE_SECONDS}s)")
+        samples = decode_audio(preview, ANALYSIS_SR, max_bytes=MAX_REFERENCE_BYTES,
+                               max_duration=MAX_REFERENCE_SECONDS).samples if preview else None
         ref = reference_from_notes(song_id, mel.notes, audio=samples, reference_type="midi")
     else:
         audio = decode_audio(data, ANALYSIS_SR, max_bytes=MAX_REFERENCE_BYTES, max_duration=MAX_REFERENCE_SECONDS)

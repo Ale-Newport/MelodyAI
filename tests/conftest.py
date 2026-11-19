@@ -8,6 +8,7 @@ warnings.filterwarnings("ignore")
 os.environ.setdefault("MELODYAI_DEVICE", "cpu")
 os.environ.setdefault("MELODYAI_OFFLINE", "1")  # apps built by tests never reach LRCLIB / Deezer (web cache only)
 os.environ["MELODYAI_ENV_FILE"] = ""            # a developer's .env never leaks keys or settings into tests
+os.environ.setdefault("MELODYAI_ALLOWED_HOSTS", "localhost,127.0.0.1,::1,testserver")  # TestClient's host
 # Keyed open-world sources stay off in tests, whatever the developer's shell exports (tests that swap in an
 # online-capable mock web would otherwise send the test text to the real Claude / Genius APIs).
 for _key in ("ANTHROPIC_API_KEY", "MELODYAI_ANTHROPIC_API_KEY", "MELODYAI_CLAUDE_SOURCE", "MELODYAI_GENIUS_TOKEN"):

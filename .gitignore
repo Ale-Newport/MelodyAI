@@ -35,3 +35,6 @@ experiments/training/*/tensorboard/
 .vscode/
 experiments/training/*/best.pt
 .claude/
+
+# Build caches
+*.tsbuildinfo

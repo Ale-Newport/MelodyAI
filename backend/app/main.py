@@ -8,6 +8,8 @@ answers from other origins, it does not stop the request, so :func:`cross_site_g
 requests that come from another site: an ``Origin`` that is neither this server nor one of
 ``cors_origins``, or ``Sec-Fetch-Site: cross-site`` without an allowed origin (e.g. an ``<img>`` pointing
 at an endpoint). Endpoints that act on the world also take JSON bodies (preflighted cross-origin).
+:func:`host_guard` answers only to the host names in ``allowed_hosts``, which defeats DNS rebinding (a site
+whose domain is re-pointed at 127.0.0.1 would otherwise be "this server" to the cross-site guard).
 httpx's INFO request log (full URLs, i.e. the user's words in search queries) is silenced.
 """
 
@@ -52,6 +54,26 @@ def cross_site_guard(allowed_origins: list[str]):
     return guard
 
 
+def host_name(host_header: str) -> str:
+    """``"[::1]:8000"`` -> ``"::1"``, ``"Localhost:5173"`` -> ``"localhost"``."""
+    host = host_header.strip().lower()
+    if host.startswith("["):
+        return host[1:].split("]", 1)[0]
+    return host.rsplit(":", 1)[0] if host.count(":") == 1 else host
+
+
+def host_guard(allowed_hosts: list[str]):
+    """Middleware refusing requests whose ``Host`` header is not one of ``allowed_hosts`` (``*`` allows all)."""
+    allowed = {h.strip().lower().strip("[]") for h in allowed_hosts if h.strip()}
+
+    async def guard(request: Request, call_next):
+        if "*" not in allowed and host_name(request.headers.get("host", "")) not in allowed:
+            return JSONResponse({"detail": "Host not allowed (set MELODYAI_ALLOWED_HOSTS)"}, status_code=400)
+        return await call_next(request)
+
+    return guard
+
+
 def create_app(settings: ServerSettings | None = None) -> FastAPI:
     settings = settings or get_settings()
 
@@ -72,6 +94,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
     app.middleware("http")(cross_site_guard(origins))
+    app.middleware("http")(host_guard(settings.allowed_hosts.split(",")))     # added last = runs first
     app.include_router(recognition.router)
     app.include_router(catalog.router)
     app.include_router(lab.router)

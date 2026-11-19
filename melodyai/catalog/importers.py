@@ -116,8 +116,15 @@ def parse_lyrics(data: bytes, filename: str = "lyrics.txt") -> dict:
             obj = json.loads(raw)
         except json.JSONDecodeError as e:
             raise ImportErrorMelody(f"Invalid lyrics JSON: {e}") from e
-        text = obj.get("text") or "\n".join(obj.get("lines", []))
-        out = {k: obj[k] for k in ("language", "source", "license") if k in obj}
+        if not isinstance(obj, dict):
+            raise ImportErrorMelody('Lyrics JSON must be an object: {"text": "..."} or {"lines": [...]}')
+        text, lines = obj.get("text"), obj.get("lines", [])
+        if text is not None and not isinstance(text, str):
+            raise ImportErrorMelody('Lyrics JSON "text" must be a string')
+        if not isinstance(lines, list) or not all(isinstance(line, str) for line in lines):
+            raise ImportErrorMelody('Lyrics JSON "lines" must be a list of strings')
+        text = text or "\n".join(lines)
+        out = {k: str(obj[k]) for k in ("language", "source", "license") if obj.get(k) is not None}
         out["text"] = text
     else:
         out = {"text": raw}
@@ -132,8 +139,13 @@ def parse_metadata(data: bytes, filename: str) -> list[dict]:
     """Parse a CSV or JSON manifest into a list of song metadata dicts."""
     raw = data.decode("utf-8-sig")
     if filename.lower().endswith(".json"):
-        obj = json.loads(raw)
-        rows = obj["songs"] if isinstance(obj, dict) else obj
+        try:
+            obj = json.loads(raw)
+        except json.JSONDecodeError as e:
+            raise ImportErrorMelody(f"Invalid manifest JSON: {e}") from e
+        rows = obj.get("songs") if isinstance(obj, dict) else obj
+        if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
+            raise ImportErrorMelody('Manifest JSON must be a list of objects or {"songs": [...]}')
     else:
         rows = list(csv.DictReader(io.StringIO(raw)))
     out = []
