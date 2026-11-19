@@ -31,7 +31,8 @@ dependencies = [
 ml = ["torch>=2.2", "faiss-cpu>=1.8", "tensorboard>=2.15"]
 asr = ["faster-whisper>=1.0"]
 llm = ["anthropic>=0.70"]
-pitch = ["basic-pitch>=0.4", "torchcrepe>=0.0.22", "resampy>=0.4.3"]  # resampy<0.4.3 needs pkg_resources
+# basic-pitch 0.4 pins resampy<0.4.3, whose filters import pkg_resources (removed in setuptools 81).
+pitch = ["basic-pitch>=0.4", "torchcrepe>=0.0.22", "setuptools<81"]
 dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.5"]
 
 [project.scripts]
