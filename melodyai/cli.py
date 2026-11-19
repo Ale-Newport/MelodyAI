@@ -133,10 +133,11 @@ def cmd_ingest(args) -> None:
     catalog are skipped, so an interrupted run can simply be restarted.
     """
     import hashlib
-    from concurrent.futures import ProcessPoolExecutor, as_completed
+    from concurrent.futures import as_completed
 
     from melodyai.catalog.importers import AUDIO_EXTENSIONS, MIDI_EXTENSIONS, parse_lyrics, parse_metadata
     from melodyai.catalog.service import DuplicateSongError
+    from melodyai.parallel import process_pool
 
     root = Path(args.dir).resolve()
     manifest = next((root / n for n in ("metadata.csv", "metadata.json") if (root / n).exists()), None)
@@ -162,7 +163,7 @@ def cmd_ingest(args) -> None:
         by_path[str(ref)] = row
     print(f"{len(rows)} files listed, {len(rows) - len(jobs)} already in the catalog or skipped, {len(jobs)} to ingest")
     done = failed = 0
-    with ProcessPoolExecutor(args.workers) as ex:
+    with process_pool(args.workers) as ex:
         futures = [ex.submit(_ingest_job, j) for j in jobs]
         for k, f in enumerate(as_completed(futures)):
             path, digest, comp, err = f.result()

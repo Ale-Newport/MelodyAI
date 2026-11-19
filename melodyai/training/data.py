@@ -196,7 +196,8 @@ def build_pipeline_pool(comps: list[NoteSequence], per_comp: int, n_points: int,
                         max_comps: int | None = None, progress=None, workers: int | None = None) -> dict:
     """Realistic positives: synthesise hum/whistle/voice audio and run the real pYIN pipeline."""
     import os
-    from concurrent.futures import ProcessPoolExecutor
+
+    from melodyai.parallel import process_pool
 
     rng = np.random.default_rng(seed)
     sampler = PairSampler(comps, n_points, seed)
@@ -210,7 +211,7 @@ def build_pipeline_pool(comps: list[NoteSequence], per_comp: int, n_points: int,
             jobs.append((comps[ci].slice(s, e), cond, int(rng.integers(1 << 31)), n_points))
             meta.append((ci, window_vector(comps[ci].slice(gs, ge), n_points)))
     qs, rs, by = [], [], {}
-    with ProcessPoolExecutor(workers or max(1, (os.cpu_count() or 2) - 2)) as ex:
+    with process_pool(workers or max(1, (os.cpu_count() or 2) - 2)) as ex:
         for k, qv in enumerate(ex.map(_pool_job, jobs, chunksize=4)):
             if qv is not None:
                 ci, rv = meta[k]

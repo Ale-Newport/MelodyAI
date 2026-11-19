@@ -10,7 +10,6 @@ import os
 import pickle
 import subprocess
 import tempfile
-from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 
@@ -20,6 +19,7 @@ from melodyai.demo.generator import GeneratedMelody
 from melodyai.demo.queries import CONDITIONS, excerpt, non_melodic_query, perturb, synth_query
 from melodyai.features.extract import analyze_query
 from melodyai.features.melody import NoteSequence
+from melodyai.parallel import process_pool
 
 NON_MELODIC_KINDS = ("noise", "silence", "single_tone", "glissando")
 
@@ -77,7 +77,7 @@ def build_query_set(catalog: list[GeneratedMelody], ooc: list[GeneratedMelody], 
         k += 1
     out = []
     if workers > 1:
-        with ProcessPoolExecutor(workers) as ex:
+        with process_pool(workers) as ex:
             for n, (key, q, meta) in enumerate(ex.map(_query_job, jobs, chunksize=4)):
                 cond, target = info[key]
                 out.append({"id": key, "condition": cond, "target": target, "query": q, "meta": meta})

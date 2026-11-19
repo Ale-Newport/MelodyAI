@@ -25,7 +25,6 @@ import json
 import shutil
 import tempfile
 import time
-from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,6 +33,7 @@ import yaml
 
 from melodyai.config import ROOT_DIR, experiments_dir
 from melodyai.evaluation.metrics import latency_stats, retrieval_metrics, roc_auc
+from melodyai.parallel import process_pool
 
 DISTRACTOR_SEED = 500_000
 RECALL_AT = (10, 50, 200, 500)   # stage-1 candidate recall curve (songs)
@@ -111,7 +111,7 @@ def melody_scale(cfg: dict, progress) -> dict:
     workers = int(cfg.get("workers", 8))
     chunk = 500
     t_gen = time.perf_counter()
-    pool = ProcessPoolExecutor(workers)
+    pool = process_pool(workers)
     futures = [pool.submit(_distractor_chunk, (s, min(chunk, n_dis - s))) for s in range(0, n_dis, chunk)]
 
     def distractors():
@@ -307,7 +307,7 @@ def fingerprint_scale(cfg: dict, progress) -> dict:
     n_dis = sizes[-1] - len(mixes)
     workers = int(cfg.get("workers", 8))
     chunk = 50
-    pool = ProcessPoolExecutor(workers)
+    pool = process_pool(workers)
     futures = [pool.submit(_recording_chunk, (s, min(chunk, n_dis - s), RECORDING_DISTRACTOR_SEED))
                for s in range(0, n_dis, chunk)]
     dis = (item for f in futures for item in f.result())

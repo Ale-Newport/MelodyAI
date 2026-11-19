@@ -15,6 +15,8 @@ All notable changes to MelodyAI are documented here. The format follows
 - Add Song: the dialog starts empty each time (a previous lyrics file was attached to the next song), and MIDI
   files are always sent as `midi` (#12).
 - A newly chosen microphone takes effect immediately instead of after a reload (#13).
+- Worker pools (benchmark, training data, Lakh index, ingest) spawn their processes instead of forking a process
+  that already runs numba/OpenMP threads, which could crash a worker on Linux.
 - Pitch extractors are validated: an unavailable one is refused in Settings and in requests (422 instead of 500),
   and a saved one that is no longer installed falls back to pYIN (#17).
 

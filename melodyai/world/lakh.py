@@ -29,7 +29,6 @@ import json
 import time
 from collections import defaultdict
 from collections.abc import Callable
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +36,7 @@ from pathlib import Path
 import numpy as np
 
 from melodyai.features.melody import NoteSequence
+from melodyai.parallel import process_pool
 from melodyai.world.melodies import open_db, pack_notes
 from melodyai.world.text import song_key
 
@@ -216,7 +216,7 @@ def build_lakh_index(raw_dir: str | Path, download_dir: str | Path, out_dir: str
         jobs = [(songs[i:i + chunk], max_melodies) for i in range(0, len(songs), chunk)]
         n_mel, n_held, n_songs = 0, 0, set()
         selections: dict[str, int] = defaultdict(int)
-        with ProcessPoolExecutor(max(1, workers)) as ex:
+        with process_pool(max(1, workers)) as ex:
             for k, mels in enumerate(ex.map(_extract_chunk, jobs)):
                 rows, hrows = [], []
                 for mel in mels:
