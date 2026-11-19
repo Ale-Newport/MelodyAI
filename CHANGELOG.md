@@ -6,6 +6,10 @@ All notable changes to MelodyAI are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Cancelling a pending microphone request or leaving the page releases any stream that arrives later. The recorder ignores duplicate starts and retries with the default microphone if a saved device is unavailable.
+
 ## [0.1.0] - 2026-11-19
 
 First public release.
