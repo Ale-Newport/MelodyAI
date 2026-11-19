@@ -24,9 +24,10 @@ const MODE_ICONS: Record<Mode, JSX.Element> = {
   combined: <Layers className="h-4 w-4" />,
 };
 
-function MicButton({ state, level, onClick, disabled }: { state: "idle" | "recording" | "busy"; level: number; onClick: () => void; disabled?: boolean }) {
+function MicButton({ state, level, onClick, disabled }: { state: "idle" | "requesting" | "recording" | "busy"; level: number; onClick: () => void; disabled?: boolean }) {
   const { t } = useAppSettings();
   const rec = state === "recording";
+  const inactive = state === "requesting" || state === "busy";
   return (
     <div className="relative grid place-items-center" style={{ width: 200, height: 200 }}>
       {rec && (
@@ -37,12 +38,12 @@ function MicButton({ state, level, onClick, disabled }: { state: "idle" | "recor
       )}
       <button
         onClick={onClick}
-        disabled={disabled || state === "busy"}
-        aria-label={rec ? t("rec.stop") : t("rec.tap")}
+        disabled={disabled || inactive}
+        aria-label={rec ? t("rec.stop") : state === "requesting" ? t("rec.requesting") : t("rec.tap")}
         className={cn(
           "relative z-10 grid h-36 w-36 place-items-center rounded-full border transition-colors duration-200 focus-visible:ring-4",
           rec ? "border-brand bg-brand" : "border-border bg-elevated hover:border-brand/60",
-          state === "busy" && "opacity-60",
+          inactive && "opacity-60",
         )}
       >
         {rec ? <Square className="h-10 w-10 fill-brand-fg text-brand-fg" /> : <Mic className="h-12 w-12 text-brand" />}
@@ -162,7 +163,9 @@ export default function RecognizePage() {
   );
   const rec = useRecorder({ maxSeconds: settings.max_record_seconds, deviceId: settings.microphone_id, onComplete });
 
-  const recording = rec.state === "recording" || rec.state === "requesting";
+  const recording = rec.state === "recording";
+  const requesting = rec.state === "requesting";
+  const capturing = recording || requesting;
   const busy = m.isPending;
   const uploadFile = async (f: File) => {
     setResult(null);
@@ -173,7 +176,7 @@ export default function RecognizePage() {
     m.mutate({ text });
   };
   const cancel = () => {
-    if (recording) rec.cancel();
+    if (capturing) rec.cancel();
     abortRef.current?.abort();
   };
 
@@ -214,12 +217,18 @@ export default function RecognizePage() {
 
         <div className="mt-4 flex flex-col items-center">
           <MicButton
-            state={busy ? "busy" : recording ? "recording" : "idle"}
+            state={busy ? "busy" : requesting ? "requesting" : recording ? "recording" : "idle"}
             level={rec.level}
             // The static demo does not record: it shows the example result of the selected mode.
             onClick={() => (DEMO ? (setResult(null), m.mutate({})) : recording ? rec.stop() : (setResult(null), rec.start()))}
           />
           <div className="h-24 w-full max-w-xl">
+            {requesting && (
+              <div className="flex items-center justify-center gap-4 text-sm text-muted">
+                <p role="status">{t("rec.requesting")}</p>
+                <Button size="sm" variant="ghost" onClick={cancel}>{t("rec.cancel")}</Button>
+              </div>
+            )}
             <AnimatePresence>
               {recording && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
@@ -237,7 +246,7 @@ export default function RecognizePage() {
                   {rec.elapsed < settings.min_record_seconds && <p className="text-xs text-muted">{t("rec.min", { s: settings.min_record_seconds })}</p>}
                 </motion.div>
               )}
-              {!recording && !busy && <p className="pt-2 text-sm text-muted">{t(DEMO ? "demo.tap" : "rec.tap")}</p>}
+              {!capturing && !busy && <p className="pt-2 text-sm text-muted">{t(DEMO ? "demo.tap" : "rec.tap")}</p>}
             </AnimatePresence>
           </div>
           {(rec.state === "denied" || rec.state === "error") && (

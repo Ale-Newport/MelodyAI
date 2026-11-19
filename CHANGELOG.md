@@ -10,6 +10,7 @@ All notable changes to MelodyAI are documented here. The format follows
 
 - Restore the saved melody matcher when its neural checkpoint is available. Recognition and Melody Explorer
   use the classical ensemble while a checkpoint loads or after a load failure.
+- Cancelling a pending microphone request or leaving the page releases any stream that arrives later. The recorder ignores duplicate starts and retries with the default microphone if a saved device is unavailable.
 
 ## [0.1.0] - 2026-11-19
 

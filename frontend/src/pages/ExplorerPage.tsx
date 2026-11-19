@@ -42,6 +42,8 @@ export default function ExplorerPage() {
     },
   });
   const recording = rec.state === "recording";
+  const requesting = rec.state === "requesting";
+  const capturing = requesting || recording;
   const a: AnalysisResult | undefined = m.data;
   const toggle = (l: Layer) => setLayers((s) => {
     const n = new Set(s);
@@ -77,10 +79,16 @@ export default function ExplorerPage() {
                 <AudioWaveform className="h-4 w-4" /> Analyse an example hum
               </Button>
             ) : (
-              <Button variant={recording ? "danger" : "primary"} onClick={() => (recording ? rec.stop() : rec.start())} disabled={m.isPending}>
+              <Button variant={recording ? "danger" : "primary"} onClick={() => (recording ? rec.stop() : rec.start())} disabled={m.isPending || requesting}>
                 {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 {recording ? `Stop (${formatTime(rec.elapsed)})` : "Record"}
               </Button>
+            )}
+            {requesting && (
+              <>
+                <p role="status" className="text-sm text-muted">Waiting for microphone permission</p>
+                <Button variant="ghost" onClick={rec.cancel}>Cancel</Button>
+              </>
             )}
             <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={async (e) => {
               const f = e.target.files?.[0];
@@ -90,11 +98,11 @@ export default function ExplorerPage() {
               m.mutate(w);
             }} />
             {!DEMO && (
-              <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={m.isPending || recording}>
+              <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={m.isPending || capturing}>
                 <Upload className="h-4 w-4" /> Upload
               </Button>
             )}
-            {audio && !recording && (
+            {audio && !capturing && (
               <Button variant="ghost" onClick={() => m.mutate(audio)} disabled={m.isPending}>Re-analyse</Button>
             )}
           </div>
