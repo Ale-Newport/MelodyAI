@@ -473,6 +473,13 @@ class WebClient:
             if not limiter.slots.acquire(timeout=None if left is None else max(0.0, left - wait)):
                 self._count(host, "errors")
                 raise WebError(f"deadline reached, {host}{path} not requested", kind="deadline", host=host)
+            # A slot freed just before the deadline can wake this thread after it (a busy machine): check again,
+            # so no request is sent once the search that made it has given up.
+            if deadline is not None and deadline - time.monotonic() <= 0.05:
+                limiter.slots.release()
+                limiter.refund()            # not sent: the token goes back to the bucket
+                self._count(host, "errors")
+                raise WebError(f"deadline reached, {host}{path} not requested", kind="deadline", host=host)
             try:
                 t0 = time.perf_counter()
                 try:

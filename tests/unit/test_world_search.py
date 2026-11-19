@@ -597,6 +597,40 @@ def test_web_requests_respect_the_deadline_and_give_back_tokens():
     assert web._limiter("lrclib.net")._tokens > -0.5                           # the refused request gave it back
 
 
+def test_a_slot_granted_after_the_deadline_sends_nothing():
+    """Regression: a connection slot freed just before the deadline could wake the waiting thread after it, and
+    the request was sent anyway, after the search had returned (seen on a slow CI runner)."""
+    from melodyai.world.web import WebError, request_deadline
+
+    sent: list[str] = []
+
+    def handler(req):
+        sent.append(str(req.url))
+        return httpx.Response(200, json=[])
+
+    web = WebClient(transport=httpx.MockTransport(handler),
+                    host_limits={"lrclib.net": HostLimit(capacity=5, refill_per_s=5.0, max_concurrent=1)})
+    limiter = web._limiter("lrclib.net")
+    real = limiter.slots
+
+    class LateSlot:            # the slot becomes free in time, but the thread runs again only after the deadline
+        def acquire(self, timeout=None):
+            time.sleep(0.4)
+            return real.acquire(timeout=0)
+
+        def release(self):
+            real.release()
+
+    limiter.slots = LateSlot()
+    tokens_before = limiter._tokens
+    with request_deadline(time.monotonic() + 0.3):
+        with pytest.raises(WebError) as err:
+            web.get_json("https://lrclib.net/api/search", {"q": "late"})
+    assert err.value.kind == "deadline" and sent == []
+    assert real.acquire(timeout=0)                                  # the slot was given back
+    assert limiter._tokens >= tokens_before - 0.01                  # and so was the token
+
+
 def test_expired_previews_are_not_returned_and_deezer_id_is():
     from melodyai.world.deezer import fresh_preview, storable_preview
 
