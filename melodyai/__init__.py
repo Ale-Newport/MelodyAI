@@ -15,4 +15,4 @@ The package is organised as independent, swappable layers:
 - ``melodyai.demo``       original synthetic demo catalog generator
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

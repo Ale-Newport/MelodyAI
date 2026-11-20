@@ -6,27 +6,45 @@ All notable changes to MelodyAI are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-20
+
+Bug-fix and hardening release. Recognition algorithms, the demo catalog and the benchmark results are unchanged.
+
 ### Fixed
 
-- Restore the saved melody matcher when its neural checkpoint is available. Recognition and Melody Explorer
-  use the classical ensemble while a checkpoint loads or after a load failure.
-- Cancelling a pending microphone request or leaving the page releases any stream that arrives later. The recorder ignores duplicate starts and retries with the default microphone if a saved device is unavailable.
-- Library: song audio stops when you leave the page and no longer overlaps other previews (#11).
-- Add Song: the dialog starts empty each time (a previous lyrics file was attached to the next song), and MIDI
-  files are always sent as `midi` (#12).
-- A newly chosen microphone takes effect immediately instead of after a reload (#13).
-- Online song search never sends a request after its deadline: a connection slot granted late (a busy machine)
-  is given back unused.
-- Worker pools (benchmark, training data, Lakh index, ingest) spawn their processes instead of forking a process
+- **Microphone recording** (#14, PR #24 by [swpswpswp](https://github.com/swpswpswp)): Stop or Cancel while the
+  browser asks for microphone permission no longer sends an empty recording, a stream that arrives after cancelling
+  or leaving the page is stopped, duplicate starts are ignored, and a saved microphone that is unplugged falls back
+  to the default one.
+- **Saved neural matcher** (#15, PR #23 by [swpswpswp](https://github.com/swpswpswp)): a saved neural melody matcher
+  is restored after a restart; while a checkpoint loads or after it fails to load, recognition and the Melody
+  Explorer use the classical ensemble instead of failing.
+- **Library** (#11): song audio stops when you leave the page and no longer overlaps other previews.
+- **Add Song** (#12): the dialog starts empty each time (a previous lyrics file was attached to the next song), and
+  MIDI files are always sent as `midi`.
+- **Microphone selection** (#13): a newly chosen microphone takes effect immediately instead of after a reload.
+- **Pitch extractors** (#17): an unavailable extractor is refused in Settings and in requests (422 instead of 500),
+  and a saved one that is no longer installed falls back to pYIN.
+- **Worker pools** (benchmark, training data, Lakh index, ingest) spawn their processes instead of forking a process
   that already runs numba/OpenMP threads, which could crash a worker on Linux.
-- Pitch extractors are validated: an unavailable one is refused in Settings and in requests (422 instead of 500),
-  and a saved one that is no longer installed falls back to pYIN (#17).
+- **Online song search** never sends a request after its deadline, even when a connection slot is granted late on
+  a busy machine.
 
 ### Security
 
 - Bulk imports are limited in total size (`MELODYAI_MAX_BULK_MB`, default 600 MB), and uploads are decoded only
   inside the recognition slots, so concurrent requests cannot exhaust memory (#16).
-- Import errors no longer echo the text of a library's own exceptions to the client.
+- Import errors no longer echo the text of a library's own exceptions to the client (CodeQL
+  `py/stack-trace-exposure`; no code-scanning alerts remain open).
+
+### Dependencies
+
+- Frontend: TypeScript 7, Recharts 3 (legend order preserved), jsdom 31, and minor updates of Radix UI,
+  TanStack Query, Testing Library, autoprefixer and the fonts. `npm audit`: 0 vulnerabilities.
+- Docker image: Python 3.12 runtime, Node 26 for building the web app.
+- Known and unchanged: the optional `[pitch]` extra (Basic Pitch) keeps `setuptools<81` and, on Linux, pulls
+  TensorFlow/Keras packages with published advisories; the dependency audit reports them. The core install and the
+  `[ml,asr]` extras are not affected.
 
 ## [0.1.0] - 2026-11-19
 
@@ -68,5 +86,6 @@ First public release.
   review, scheduled `pip-audit` / `npm audit`, Dependabot, SHA-pinned actions with read-only tokens, and a tag-driven
   release workflow.
 
-[Unreleased]: https://github.com/Ale-Newport/MelodyAI/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Ale-Newport/MelodyAI/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Ale-Newport/MelodyAI/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Ale-Newport/MelodyAI/releases/tag/v0.1.0

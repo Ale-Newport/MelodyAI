@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "melodyai"
-version = "0.1.0"
+version = "0.1.1"
 description = "Query-by-humming, whistling and lyrics song recognition engine (research toolkit)."
 readme = "README.md"
 license = { text = "MIT" }
