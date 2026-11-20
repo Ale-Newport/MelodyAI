@@ -40,3 +40,22 @@ experiments/training/*/best.pt
 *.tsbuildinfo
 build/
 dist/
+
+# Local-only material: launch / promotion drafts and AI-agent or editor tooling
+LAUNCH*.md
+**/LAUNCH*.md
+launch/
+docs/launch/
+.claude/
+CLAUDE.local.md
+.cursor/
+.codex/
+.aider*
+.continue/
+
+# Logs, backups and editor leftovers
+*.log
+*.bak
+*.orig
+*.swp
+*~

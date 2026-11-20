@@ -151,7 +151,7 @@ def build_algorithms(cfg: dict, index: MelodyIndex, store_cache: Path | None = N
                                      "device": emb.device, "train_config": emb.ckpt.get("train_config"),
                                      "val": emb.ckpt.get("val"), "epoch": emb.ckpt.get("epoch")}
         except Exception as e:  # neural part is optional
-            notes["neural_skipped"] = str(e)
+            notes["neural_skipped"] = str(e).replace(f"{ROOT_DIR}/", "")   # no local absolute paths in reports
     if "ensemble" in want:
         algs["ensemble"] = MelodyEnsemble("ensemble", {k: algs[k] for k in ("dtw", "note_align", "subseq_dtw")})
     if "ensemble_neural" in want and "neural_rerank" in algs:

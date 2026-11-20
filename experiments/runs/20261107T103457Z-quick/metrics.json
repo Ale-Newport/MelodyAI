@@ -614,7 +614,7 @@
   }
  },
  "notes": {
-  "neural_skipped": "/Users/alejandro/Projects/MelodyAI/models/melody_encoder.pt not found (run `make train`)"
+  "neural_skipped": "models/melody_encoder.pt not found (run `make train`)"
  },
  "lyrics": {
   "overall": {
